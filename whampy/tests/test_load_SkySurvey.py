@@ -20,39 +20,39 @@ def test_remote_load():
 survey = SkySurvey()
 
 def test_section_circle():
-  from astropy.coordinates import Angle
-  """
-  Ensure survey section extraction works
-  """
+    from astropy.coordinates import Angle
+    """
+    Ensure survey section extraction works
+    """
 
-  l = Angle(np.random.random(1) * 360.*u.deg).wrap_at("180d")
-  b = Angle((np.random.random(1) * 180.*u.deg) - 90*u.deg)
+    l = Angle(np.random.random(1) * 360.*u.deg).wrap_at("180d")
+    b = Angle((np.random.random(1) * 180.*u.deg) - 90*u.deg)
 
-  center = [l.value,b.value]
-  radius = np.random.random()*30.
+    center = [l.value,b.value]
+    radius = np.random.random()*30.
 
-  circle = survey.sky_section(center, radius)
+    circle = survey.sky_section(center, radius)
 
-  assert circle["DATA"].unit == u.R / u.km * u.s
+    assert circle["DATA"].unit == u.R / u.km * u.s
 
-def test_section_circle_coord():
-  from astropy.coordinates import Angle
-  from astropy.coordinates import SkyCoord
-  """
-  Ensure survey section extraction works
-  """
+def test_section_circle_coord_radius_number():
+    from astropy.coordinates import Angle
+    from astropy.coordinates import SkyCoord
+    """
+    Ensure survey section extraction works
+    """
 
-  l = Angle(np.random.random(1) * 360.*u.deg).wrap_at("180d")
-  b = Angle((np.random.random(1) * 180.*u.deg) - 90*u.deg)
+    l = Angle(np.random.random(1) * 360.*u.deg).wrap_at("180d")
+    b = Angle((np.random.random(1) * 180.*u.deg) - 90*u.deg)
 
-  center = SkyCoord(l = l, b = b, frame = 'galactic')
-  radius = np.random.random()*30. * u.deg
-  if radius < 5 * u.deg:
-      radius = 5 * u.deg
+    center = SkyCoord(l = l, b = b, frame = 'galactic')
+    radius = np.random.random()*30.
+    if radius < 5:
+      radius = 5
 
-  circle = survey.sky_section(center, radius)
+    circle = survey.sky_section(center, radius)
 
-  assert circle["DATA"].unit == u.R / u.km * u.s
+    assert circle["DATA"].unit == u.R / u.km * u.s
 
 def test_section_rect_coord():
     from astropy.coordinates import Angle
@@ -117,17 +117,6 @@ def test_no_radius_len2():
     try:
         survey.sky_section(np.random.random(2), 
                             radius = None)
-    except TypeError:
-        assert True
-    else:
-        assert False
-
-def test_not_quantity_radius_coord():
-    from astropy.coordinates import SkyCoord
-    try:
-        survey.sky_section(SkyCoord(l = np.random.random(1) * u.deg, b = np.random.random(1) * u.deg, 
-                                    frame = 'galactic'), 
-                            radius = 5.)
     except TypeError:
         assert True
     else:
