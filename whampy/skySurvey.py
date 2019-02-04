@@ -10,7 +10,7 @@ from .whampyTableMixin import SkySurveyMixin
 
 import os.path 
 
-directory = os.path.dirname(whampy.__file__)
+directory = os.path.dirname(__file__)
 
 
 
@@ -35,10 +35,10 @@ class SkySurvey(SkySurveyMixin, Table):
     def __init__(self, filename = None, mode = 'local',
                  **kwargs):
         if filename == None:
-            if mode = 'local':
-                filename = os.path.dirname(directory, "data/wham-ss-DR1-v161116-170912.fits")
-            elif mode = 'remote':
-            filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
+            if mode == 'local':
+                filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
+            elif mode == 'remote':
+                filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
         with fits.open(filename) as hdulist:
             self.header = hdulist[0].header
