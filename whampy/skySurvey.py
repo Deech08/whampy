@@ -34,7 +34,7 @@ class SkySurvey(SkySurveyMixin, Table):
 
     def __init__(self, filename = None, mode = 'local',
                  **kwargs):
-        if filename == None:
+        if filename is None:
             if mode == 'local':
                 filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
             elif mode == 'remote':
@@ -98,9 +98,8 @@ class SkySurvey(SkySurveyMixin, Table):
 
         if isinstance(bounds, SkyCoord):
             if len(bounds) == 1:
-                if radius == None:
-                    raise TypeError
-                    print("Radius must be provided if only a single coordinate is given")
+                if radius is None:
+                    raise TypeError("Radius must be provided if only a single coordinate is given")
                 elif not isinstance(radius, u.Quantity):
                     radius *= u.deg
                     logging.warning("No units provided for radius, assuming u.deg")
@@ -109,9 +108,8 @@ class SkySurvey(SkySurveyMixin, Table):
                 min_lon, max_lon = bounds.l.wrap_at("180d").min(), bounds.l.wrap_at("180d").max()
                 min_lat, max_lat = bounds.b.min(), bounds.l.max()
         elif len(bounds) == 2:
-            if radius == None:
-                raise TypeError
-                print("Radius must be provided if only a single coordinate is given")
+            if radius is None:
+                raise TypeError("Radius must be provided if only a single coordinate is given")
             elif not isinstance(radius, u.Quantity):
                 radius *= u.deg
                 logging.warning("No units provided for radius, assuming u.deg")
@@ -119,11 +117,10 @@ class SkySurvey(SkySurveyMixin, Table):
         elif len(bounds) == 4:
             min_lon, max_lon, min_lat, max_lat = Angle(bounds).wrap_at("180d")
         else:
-            raise TypeError
-            print("Input bounds and/or radius are not understood")
+            raise TypeError("Input bounds and/or radius are not understood")
 
         # rectangular extraction
-        if radius == None:
+        if radius is None:
             # Mask of points inside rectangular region
             inside_mask = wham_coords.l.wrap_at("180d") <= max_lon
             inside_mask &= wham_coords.l.wrap_at("180d") >= min_lon

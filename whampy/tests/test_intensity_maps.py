@@ -17,52 +17,75 @@ BASELINE_DIR = 'baseline'
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
 def test_basic():
-	"""
-	Basic intensity plot
-	"""
-	fig = survey.intensity_map()
-	return fig
+    """
+    Basic intensity plot
+    """
+    fig = survey.intensity_map()
+    return fig
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
 def test_fig_input():
-	"""
-	fig kwarg
-	"""
-	fig = plt.figure()
-	return survey.intensity_map(fig = fig)
+    """
+    fig kwarg
+    """
+    fig = plt.figure()
+    return survey.intensity_map(fig = fig)
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
 def test_ax_input():
-	"""
-	ax kwarrg
-	"""
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	return survey.intensity_map(ax = ax)
+    """
+    ax kwarrg
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    return survey.intensity_map(ax = ax)
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
 def test_ranges():
-	"""
-	lrange and brange
-	"""
-	lrange = [30,-30]
-	brange = [-30,30]
-	return survey.intensity_map(lrange = lrange * u.deg, brange = brange)
+    """
+    lrange and brange
+    """
+    lrange = [30,-30]
+    brange = [-30,30]
+    return survey.intensity_map(lrange = lrange * u.deg, brange = brange)
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+def test_ranges_unit():
+    """
+    lrange and brange
+    """
+    lrange = [30,-30]
+    brange = [-30,30]
+    return survey.intensity_map(lrange = lrange, brange = brange*u.deg)
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
 def test_colorbar():
-	"""
-	colorbar
-	"""
-	return survey.intensity_map(colorbar = True, 
-		cbar_kwargs = {"orientation":"horizontal"})
+    """
+    colorbar
+    """
+    return survey.intensity_map(colorbar = True, 
+        cbar_kwargs = {"orientation":"horizontal"})
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
 def test_sc():
-	"""
-	return_sc test
-	"""
-	sc, fig = survey.intensity_map(return_sc = True)
-	cb = fig.colorbar(sc, orientation = "horizontal")
-	return fig
+    """
+    return_sc test
+    """
+    sc, fig = survey.intensity_map(return_sc = True)
+    cb = fig.colorbar(sc, orientation = "horizontal")
+    return fig
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+def test_basemap():
+    """
+    Basic intensity plot
+    """
+    fig = plt.figure()
+    m = Basemap(projection='stere',
+            llcrnrlon=30,llcrnrlat=-20,urcrnrlon=-30,urcrnrlat=20, 
+            lat_0 = 0, lon_0 = 0)
+    fig = survey.intensity_map(ax = m, fig = fig, latlon = True, s_factor=2)
+    return fig
+
+
 

@@ -79,14 +79,14 @@ class SkySurveyMixin(object):
         wham_coords = self.get_SkyCoord()
 
         if not isinstance(ax, Basemap):
-            if lrange == None:
+            if lrange is None:
                 lrange = [wham_coords.l.wrap_at("180d").max().value, wham_coords.l.wrap_at("180d").min().value]
             elif isinstance(lrange, u.Quantity):
                 lrange = Angle(lrange).wrap_at("180d").value
             else:
                 logging.warning("No units provided for lrange, assuming u.deg")
                 lrange = Angle(lrange*u.deg).wrap_at("180d").value
-            if np.any(brange) == None:
+            if brange is None:
                 brange = [wham_coords.b.min().value, wham_coords.b.max().value]
             elif isinstance(brange, u.Quantity):
                 brange = brange.to(u.deg).value
@@ -162,21 +162,21 @@ class SkySurveyMixin(object):
             if True, will also return one-sigma gaussian error estimate
         """
 
-        if order == None:
+        if order is None:
             order = 0 # Assume default value
 
         # Mask out nan values
         nan_msk = np.isnan(self["DATA"]) | np.isnan(self["VELOCITY"])
 
         # Velocity mask if applicable:
-        if vmin != None:
+        if vmin is not None:
             if not isinstance(vmin, u.Quantity):
                 logging.warning("No units specified for vmin, assuming u.km/u.s")
                 vmin *= u.km/u.s
 
             nan_msk &= np.invert(self["VELOCITY"] >= vmin.to(u.km/u.s).value)
 
-        if vmax != None:
+        if vmax is not None:
             if not isinstance(vmax, u.Quantity):
                 logging.warning("No units specified for vmax, assuming u.km/u.s")
                 vmax *= u.km/u.s

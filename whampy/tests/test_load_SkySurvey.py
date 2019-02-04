@@ -14,7 +14,7 @@ def test_remote_load():
     Ensure survey loads from default remote link
     """
 
-    survey = SkySurvey()
+    survey = SkySurvey(mode = "remote")
     assert survey["VELOCITY"].unit == u.km/u.s
 
 survey = SkySurvey()
@@ -102,6 +102,34 @@ def test_no_radius():
     else:
         assert False
 
+def test_no_radius_coord():
+    try:
+        survey.sky_section(SkyCoord(l = np.random.random(1) * u.deg, b = np.random.random(1) * u.deg, 
+                                    frame = 'galactic'), 
+                            radius = None)
+    except TypeError:
+        assert True
+    else:
+        assert False
+
+def test_no_radius_len2():
+    try:
+        survey.sky_section(np.random.random(2), 
+                            radius = None)
+    except TypeError:
+        assert True
+    else:
+        assert False
+
+def test_not_quantity_radius_coord():
+    try:
+        survey.sky_section(SkyCoord(l = np.random.random(1) * u.deg, b = np.random.random(1) * u.deg, 
+                                    frame = 'galactic'), 
+                            radius = 5.)
+    except TypeError:
+        assert True
+    else:
+        assert False
 
 
 
