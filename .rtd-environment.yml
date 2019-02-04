@@ -8,7 +8,7 @@ dependencies:
     - sphinx-astropy
     - astropy
     - matplotlib
-    - basemap
     - numpy
-#   - pip:
+    - pip:
+        -basemap
 #       - dependency_from_pip

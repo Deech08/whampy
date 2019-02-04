@@ -5,8 +5,56 @@ Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Ma
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
 
-www.astro.wisc.edu/wham
+.. image:: https://travis-ci.com/Deech08/whampy.svg?branch=master
+    :target: https://travis-ci.com/Deech08/whampy
 
+.. image:: https://coveralls.io/repos/github/Deech08/whampy/badge.svg?branch=master&service=github
+	:target: https://coveralls.io/github/Deech08/whampy?branch=master&service=github
+
+.. image:: https://readthedocs.org/projects/whampy/badge/?version=latest
+	:target: https://whampy.readthedocs.io/en/latest/?badge=latest
+	:alt: Documentation Status
+
+`WHAM <www.astro.wisc.edu/wham>`_
+
+
+The `whampy` package provides an easy way to load, view, and do science with the 
+Wisconsin H-Alpha Mapper (WHAM) Sky Survey. 
+It provides the following main features:
+
+-The ability to load the Sky Survey Data from the FITS table
+-The ability to quickly plot sections of the sky with beam maps
+-The ability to calculate moment maps and arithmetic using the data
+
+Installation
+------------
+
+To install the latest developer version of whampy you can type::
+
+    git clone https://github.com/Deech08/whampy.git
+    cd whampy
+    python setup.py install
+
+You may need to add the ``--user`` option to the last line `if you do not
+have root access <https://docs.python.org/2/install/#alternate-installation-the-user-scheme>`_.
+You can also install the latest developer version in a single line with pip::
+
+    pip install git+https://github.com/Deech08/whampy.git
+
+
+Quick Start
+-----------
+
+Here is a simple script demonstrating the modspectra package:
+
+	>>> from whampy.skySurvey import SkySurvey
+	>>> # Load the Survey
+	>>> survey = SkySurvey()
+
+	>>> # Compute Moments
+	>>> moment_0, err_0 = survey.moment(order = 0, return_sigma = True)
+	>>> moment_1, err_1 = survey.moment(order = 1, return_sigma = True)
+	>>> moment_2, err_2 = survey.moment(order = 2, return_sigma = True)
 
 License
 -------
@@ -18,34 +66,4 @@ which is licensed under the BSD 3-clause licence. See the licenses folder for
 more information.
 
 
-Contributing
-------------
 
-We love contributions! whampy is open source,
-built on open source, and we'd love to have you hang out in our community.
-
-**Imposter syndrome disclaimer**: We want your help. No, really.
-
-There may be a little voice inside your head that is telling you that you're not
-ready to be an open source contributor; that your skills aren't nearly good
-enough to contribute. What could you possibly offer a project like this one?
-
-We assure you - the little voice in your head is wrong. If you can write code at
-all, you can contribute code to open source. Contributing to open source
-projects is a fantastic way to advance one's coding skills. Writing perfect code
-isn't the measure of a good developer (that would disqualify all of us!); it's
-trying to create something, making mistakes, and learning from those
-mistakes. That's how we all improve, and we are happy to help others learn.
-
-Being an open source contributor doesn't just mean writing code, either. You can
-help out by writing documentation, tests, or even giving feedback about the
-project (and yes - that includes giving feedback about the contribution
-process). Some of these contributions may be the most valuable to the project as
-a whole, because you're coming to the project with fresh eyes, so you can see
-the errors and assumptions that seasoned contributors have glossed over.
-
-*This disclaimer was originally written by
-`Adrienne Lowe <https://github.com/adriennefriend>`_ for a
-`PyCon talk <https://www.youtube.com/watch?v=6Uj746j9Heo>`_, and was adapted by
-whampy based on its use in the README file for the
-`MetPy project <https://github.com/Unidata/MetPy>`_.*
