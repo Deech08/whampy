@@ -8,12 +8,11 @@ dependencies:
     - sphinx-astropy
     - astropy
     - numpy
-    - basemap
     - matplotlib
     - pyproj
     - pyshp
     - proj4
-    # - pip
-    # - pip:
-        # - basemap
+    - pip
+    - pip:
+        - git+https://github.com/matplotlib/basemap.git
 #       - dependency_from_pip
