@@ -17,8 +17,7 @@ conda update -q conda
 conda info -a
 conda create --yes -n test python=$PYTHON_VERSION
 source activate test
-conda install -q numpy=$NUMPY_VERSION setuptools pytest pytest-cov pip sphinx matplotlib
-# conda install -c conda-forge extinction
+conda install -q numpy=$NUMPY_VERSION setuptools pytest pytest-cov pip sphinx matplotlib basemap
 pip install coveralls
 pip install astropy
 pip install pytest-mpl
