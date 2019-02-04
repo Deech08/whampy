@@ -3,7 +3,8 @@ include CHANGES.rst
 
 include ah_bootstrap.py
 include setup.cfg
-include whampy/tests/coveragerc
+include whampy/data/*.fits
+
 
 recursive-include whampy *.pyx *.c *.pxd
 recursive-include docs *

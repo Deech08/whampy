@@ -8,7 +8,9 @@ from astropy.coordinates import SkyCoord, Angle
 
 from .whampyTableMixin import SkySurveyMixin
 
+import os.path 
 
+directory = os.path.dirname(whampy.__file__)
 
 
 
@@ -23,14 +25,19 @@ class SkySurvey(SkySurveyMixin, Table):
     filename: 'str', optional, must be keyword
         filename of WHAM survey fits file
         Defaults to URL
+    mode: 'str', optional, must be keyword
+        can be "local" or "remote" to signify using local file or remote access
 
 
     """
 
 
-    def __init__(self, filename = None,
+    def __init__(self, filename = None, mode = 'local',
                  **kwargs):
         if filename == None:
+            if mode = 'local':
+                filename = os.path.dirname(directory, "data/wham-ss-DR1-v161116-170912.fits")
+            elif mode = 'remote':
             filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
         with fits.open(filename) as hdulist:
