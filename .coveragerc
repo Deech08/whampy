@@ -1,0 +1,24 @@
+[report]
+omit =
+    docs/*
+    tests/*
+    */tests/*
+    *__init__*
+    whampy/conftest.py
+    whampy/version.py
+    whampy/cython_version.py
+    whampy/_astropy_init.py
+    whampy/setup_packages*
+    whampy/*/setup_packages*
+    whampy/*/*/setup_packages*
+
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    raise ImportError
+    except ImportError
+    def __len__
+    def __repr__
+    logging.warn
+    deprecation_warning
+    deprecated
