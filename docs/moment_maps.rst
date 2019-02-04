@@ -1,7 +1,7 @@
 Making Moment Maps with `whampy`
 ===============================
 
-The :class:`.skySurvey.SkySurvey` class has a method `.whampyTableMixin.moment` to quickly compute 
+The :class:`~whampy.skySurvey.SkySurvey` class has a method `~whampy.whampyTableMixin.moment` to quickly compute 
 moment maps with the survey::
 
     >>> from whampy.skySurvey import SkySurvey

@@ -1,7 +1,7 @@
 Making Sky Maps with `whampy`
 =============================
 
-The :class:`.skySurvey.SkySurvey` class has a method `.whampyTableMixin.intensity_map` that allows for 
+The :class:`.skySurvey.SkySurvey` class has a method `~whampyTableMixin.intensity_map` that allows for 
 quick plotting of WHAM beams colored by their intensity with the help of matplotlib::
 
     >>> from whampy.skySurvey import SkySurvey
@@ -31,7 +31,7 @@ plot these points onto different projections or over other data::
 Different map projections are also support, especially with the help of the transform keyword. 
 This can done with either astropy WCSaxes or using `cartopy`. this method also finds a best guess 
 default size for the plot markers. This can also be set manually with the keyword `s` or altered
-by some factor using the `s_factor` keyword::
+by some factor using the `s_factor` keywword::
 
     >>> import cartopy.crs as ccrs
     >>> fig = plt.figure()
