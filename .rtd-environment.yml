@@ -7,11 +7,12 @@ dependencies:
     - python=>3.6
     - sphinx-astropy
     - astropy
-    - matplotlib
     - numpy
     - basemap
+    - matplotlib
     - pyproj
     - pyshp
+    - proj4
     # - pip
     # - pip:
         # - basemap
