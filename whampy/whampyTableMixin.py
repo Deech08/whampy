@@ -92,6 +92,10 @@ class SkySurveyMixin(object):
 
         if not "s" in kwargs:
             size = fig.get_size_inches()*fig.dpi
+            if brange is not None:
+                brange_s = brange
+            if lrange is not None:
+                lrange_s = lrange
             s = np.min([size / np.abs(np.diff(lrange_s)), size / np.abs(np.diff(brange_s))]) * s_factor
             kwargs["s"] = s
 
@@ -123,13 +127,14 @@ class SkySurveyMixin(object):
             if (lrange is not None) & (brange is not None):
                 ax.set_xlim(lrange)
                 ax.set_ylim(brange)
+            else:
+                ax.invert_xaxis()
             ax.set_xlabel("Galactic Longitude (deg)", fontsize = 12)
             ax.set_ylabel("Galactic Latitude (deg)", fontsize = 12)
         else:
+            ax.invert_xaxis()
             if (lrange is not None) & (brange is not None):
-                ax.set_extent([lrange[0], lrange[1], brange[0], brange[1]])
-                if lrange[0] > lrange[1]:
-                    ax.invert_xaxis()
+                ax.set_extent([lrange[0], lrange[1], brange[0], brange[1]])   
             try:
                 ax.gridlines(draw_labels = True)
             except TypeError:
