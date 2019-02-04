@@ -103,6 +103,7 @@ def test_no_radius():
         assert False
 
 def test_no_radius_coord():
+  from astropy.coordinates import SkyCoord
     try:
         survey.sky_section(SkyCoord(l = np.random.random(1) * u.deg, b = np.random.random(1) * u.deg, 
                                     frame = 'galactic'), 
@@ -122,6 +123,7 @@ def test_no_radius_len2():
         assert False
 
 def test_not_quantity_radius_coord():
+  from astropy.coordinates import SkyCoord
     try:
         survey.sky_section(SkyCoord(l = np.random.random(1) * u.deg, b = np.random.random(1) * u.deg, 
                                     frame = 'galactic'), 

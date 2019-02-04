@@ -18,7 +18,7 @@ def test_moment_0():
 	"""
 	moment, err = survey.moment(return_sigma = True)
 	moment2 = survey.moment()
-	assert np.allclose(moment, moment2)
+	assert np.allclose(moment.value, moment2.value)
 
 def test_moment_1_err():
 	"""
@@ -33,7 +33,7 @@ def test_moment_1():
 	"""
 	moment, err = survey.moment(order = 1, return_sigma = True)
 	moment2 = survey.moment(order = 1)
-	assert np.allclose(moment, moment2)
+	assert np.allclose(moment.value, moment2.value)
 
 def test_moment_2_err():
 	"""
@@ -48,7 +48,7 @@ def test_moment_2():
 	"""
 	moment, err = survey.moment(order = 2, return_sigma = True)
 	moment2 = survey.moment(order = 2)
-	assert np.allclose(moment, moment2)
+	assert np.allclose(moment.value, moment2.value)
 
 def test_moment_2_vel_range():
 	"""

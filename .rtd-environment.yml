@@ -9,6 +9,7 @@ dependencies:
     - astropy
     - matplotlib
     - numpy
+    - pip
     - pip:
-        -basemap
+        - basemap
 #       - dependency_from_pip
