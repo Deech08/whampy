@@ -79,20 +79,20 @@ class SkySurveyMixin(object):
         wham_coords = self.get_SkyCoord()
 
         if lrange is None:
-            lrange = [wham_coords.l.wrap_at("180d").max().value, wham_coords.l.wrap_at("180d").min().value]
+            lrange_s = [wham_coords.l.wrap_at("180d").max().value, wham_coords.l.wrap_at("180d").min().value]
         elif isinstance(lrange, u.Quantity):
             lrange = Angle(lrange).wrap_at("180d").value
         else:
             logging.warning("No units provided for lrange, assuming u.deg")
             lrange = Angle(lrange*u.deg).wrap_at("180d").value
         if brange is None:
-            brange = [wham_coords.b.min().value, wham_coords.b.max().value]
+            brange_s = [wham_coords.b.min().value, wham_coords.b.max().value]
         elif isinstance(brange, u.Quantity):
             brange = brange.to(u.deg).value
 
         if not "s" in kwargs:
             size = fig.get_size_inches()*fig.dpi
-            s = np.min([size / np.abs(np.diff(lrange)), size / np.abs(np.diff(brange))]) * s_factor
+            s = np.min([size / np.abs(np.diff(lrange_s)), size / np.abs(np.diff(brange_s))]) * s_factor
             kwargs["s"] = s
 
         if not "c" in kwargs:
@@ -120,14 +120,16 @@ class SkySurveyMixin(object):
         sc = ax.scatter(wham_coords.l.wrap_at("180d"), wham_coords.b.wrap_at("180d"), **kwargs)
 
         if not hasattr(ax, "coastlines"):
-            ax.set_xlim(lrange)
-            ax.set_ylim(brange)
+            if (lrange is not None) & (brange is not None):
+                ax.set_xlim(lrange)
+                ax.set_ylim(brange)
             ax.set_xlabel("Galactic Longitude (deg)", fontsize = 12)
             ax.set_ylabel("Galactic Latitude (deg)", fontsize = 12)
         else:
-            ax.set_extent([lrange[0], lrange[1], brange[0], brange[1]])
-            if lrange[0] > lrange[1]:
-                ax.invert_xaxis()
+            if (lrange is not None) & (brange is not None):
+                ax.set_extent([lrange[0], lrange[1], brange[0], brange[1]])
+                if lrange[0] > lrange[1]:
+                    ax.invert_xaxis()
             try:
                 ax.gridlines(draw_labels = True)
             except TypeError:

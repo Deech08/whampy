@@ -1,5 +1,5 @@
 Installing ``whampy``
-============================
+=====================
 
 Requirements
 ------------
@@ -10,6 +10,7 @@ This package has the following dependencies:
 * `Numpy <http://www.numpy.org>`_ 1.8 or later
 * `Astropy <http://www.astropy.org>`_ 1.0 or later
 * `matplotlib <https://matplotlib.org/>`_ 3.0 or later
+* `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_0.17.0 or later
 
 Installation
 ------------
