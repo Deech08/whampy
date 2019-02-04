@@ -2,7 +2,6 @@ import pytest
 import matplotlib.pyplot as plt
 import astropy.units as u
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 from ..skySurvey import SkySurvey 
 
 # Set up the random number generator.
@@ -76,15 +75,15 @@ def test_sc():
     return fig
 
 @pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
-def test_basemap():
+def test_cartopy_stereo():
+    import cartopy.crs as ccrs
     """
-    Basic intensity plot
+    test stereo projection with cartopy
     """
     fig = plt.figure()
-    m = Basemap(projection='stere',
-            llcrnrlon=30,llcrnrlat=-20,urcrnrlon=-30,urcrnrlat=20, 
-            lat_0 = 0, lon_0 = 0)
-    fig = survey.intensity_map(ax = m, fig = fig, latlon = True, s_factor=2)
+    ax = fig.add_subplot(111, projection = ccrs.Stereographic())
+    fig = survey.intensity_map(ax = ax, fig = fig, s_factor=2, 
+        lrange = [40,-40], brange = [-20,20])
     return fig
 
 

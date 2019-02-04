@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from matplotlib.colors import LogNorm
-from mpl_toolkits.basemap import Basemap
+# from mpl_toolkits.basemap import Basemap
+import cartopy.crs as ccrs
 
 
 
@@ -47,8 +48,7 @@ class SkySurveyMixin(object):
             if provided, will create axes on the figure provided
         ax: 'plt.figure.axes' or 'mpl_toolkits.basemap.Basemap, optional, must be keyword
             if provided, will plot on these axes
-            can provide ax as a Basemap that contains different map projections
-                will require "latlon" keyword in **kwargs if Basemap
+            can provide ax as a cartpy projection that contains different map projections
         lrange: 'list', optional, must be keyword
             provides longitude range to plot
         brange: 'list', optional, must be keyword
@@ -78,26 +78,22 @@ class SkySurveyMixin(object):
 
         wham_coords = self.get_SkyCoord()
 
-        if not isinstance(ax, Basemap):
-            if lrange is None:
-                lrange = [wham_coords.l.wrap_at("180d").max().value, wham_coords.l.wrap_at("180d").min().value]
-            elif isinstance(lrange, u.Quantity):
-                lrange = Angle(lrange).wrap_at("180d").value
-            else:
-                logging.warning("No units provided for lrange, assuming u.deg")
-                lrange = Angle(lrange*u.deg).wrap_at("180d").value
-            if brange is None:
-                brange = [wham_coords.b.min().value, wham_coords.b.max().value]
-            elif isinstance(brange, u.Quantity):
-                brange = brange.to(u.deg).value
+        if lrange is None:
+            lrange = [wham_coords.l.wrap_at("180d").max().value, wham_coords.l.wrap_at("180d").min().value]
+        elif isinstance(lrange, u.Quantity):
+            lrange = Angle(lrange).wrap_at("180d").value
+        else:
+            logging.warning("No units provided for lrange, assuming u.deg")
+            lrange = Angle(lrange*u.deg).wrap_at("180d").value
+        if brange is None:
+            brange = [wham_coords.b.min().value, wham_coords.b.max().value]
+        elif isinstance(brange, u.Quantity):
+            brange = brange.to(u.deg).value
 
         if not "s" in kwargs:
             size = fig.get_size_inches()*fig.dpi
-            if not isinstance(ax, Basemap):
-                s = np.min([size / np.abs(np.diff(lrange)), size / np.abs(np.diff(brange))]) * s_factor
-            else:
-                s = np.min([size / np.abs(ax.latmax - ax.latmin), size / np.abs(ax.lonmax - ax.lonmin)]) * s_factor
-        kwargs["s"] = s
+            s = np.min([size / np.abs(np.diff(lrange)), size / np.abs(np.diff(brange))]) * s_factor
+            kwargs["s"] = s
 
         if not "c" in kwargs:
             kwargs["c"] = self["INTEN"]
@@ -113,25 +109,29 @@ class SkySurveyMixin(object):
 
         if not "norm" in kwargs:
             kwargs["norm"] = LogNorm()
+        if hasattr(ax, "coastlines"):
+            if not "transform" in kwargs:
+                kwargs["transform"] = ccrs.PlateCarree()
+                print("No transform specified with cartopy axes projection, assuming PlateCarree")
 
 
 
         # Plot the WHAM beams
         sc = ax.scatter(wham_coords.l.wrap_at("180d"), wham_coords.b.wrap_at("180d"), **kwargs)
 
-        if not isinstance(ax, Basemap):
+        if not hasattr(ax, "coastlines"):
             ax.set_xlim(lrange)
             ax.set_ylim(brange)
             ax.set_xlabel("Galactic Longitude (deg)", fontsize = 12)
             ax.set_ylabel("Galactic Latitude (deg)", fontsize = 12)
         else:
-            lats = ax.drawparallels(np.linspace(-90, 90, 13), 
-                                labels = [False, True, False, False], 
-                                labelstyle = "+/-")
-            lons = ax.drawmeridians(np.linspace(-180, 180, 37), 
-                                labels = [False, False, True, False], 
-                                labelstyle = "+/-")
-
+            ax.set_extent([lrange[0], lrange[1], brange[0], brange[1]])
+            if lrange[0] > lrange[1]:
+                ax.invert_xaxis()
+            try:
+                ax.gridlines(draw_labels = True)
+            except TypeError:
+                ax.gridlines()
 
 
 

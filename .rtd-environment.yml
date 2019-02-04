@@ -9,10 +9,11 @@ dependencies:
     - astropy
     - numpy
     - matplotlib
-    - pyproj
-    - pyshp
-    - proj4
-    - pip
-    - pip:
-        - git+https://github.com/matplotlib/basemap.git
+    - cartopy
+    # - pyproj
+    # - pyshp
+    # - proj4
+    # - pip
+    # - pip:
+    #     - git+https://github.com/matplotlib/basemap.git
 #       - dependency_from_pip
