@@ -86,5 +86,22 @@ def test_cartopy_stereo():
         lrange = [40,-40], brange = [-20,20])
     return fig
 
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+def test_vel_range():
+    """
+    test velocity range input
+    """
+    vel_range = [-20,20]
+    return survey.intensity_map(vel_range = vel_range)
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+def test_vel_range_units():
+    """
+    test velocity range input
+    """
+    vel_range = [-20,20]*u.km/u.s
+    return survey.intensity_map(vel_range = vel_range)
+
+
 
 

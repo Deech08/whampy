@@ -1,4 +1,4 @@
-Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - SKy Survey
+Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - Sky Survey
 -------------------------------------------------------------------------------------------------
 
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat

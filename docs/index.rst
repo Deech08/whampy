@@ -39,3 +39,4 @@ Getting started
   installing.rst
   intensity_maps.rst
   moment_maps.rst
+  click_maps.rst
