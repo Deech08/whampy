@@ -7,6 +7,7 @@ from astropy.io import fits
 from astropy.coordinates import SkyCoord, Angle
 
 from .whampyTableMixin import SkySurveyMixin
+from scipy.io import readsav
 
 import os.path 
 
@@ -25,14 +26,18 @@ class SkySurvey(SkySurveyMixin, Table):
     filename: 'str', optional, must be keyword
         filename of WHAM survey fits file
         Defaults to URL
+        can also be idl sav file
     mode: 'str', optional, must be keyword
         can be "local" or "remote" to signify using local file or remote access
+    idl_var: 'str', optional, must be keyword
+        if provided, points to name of IDL structure in sav file containing relevant data
+        by default, will take the first variable that is a `numpy.recarray`
 
 
     """
 
 
-    def __init__(self, filename = None, mode = 'local',
+    def __init__(self, filename = None, mode = 'local', idl_var = None,
                  **kwargs):
         if filename is None:
             if mode == 'local':
@@ -40,32 +45,81 @@ class SkySurvey(SkySurveyMixin, Table):
             elif mode == 'remote':
                 filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
-        with fits.open(filename) as hdulist:
-            self.header = hdulist[0].header
-            self.table_header = hdulist[1].header
+        if filename[-4:] == ".sav":
+            # IDL Save File
+            idl_data = readsav(filename)
 
-            self.date = hdulist[0].header["DATE"]
-            self.tag = hdulist[0].header["TAG"]
-            self.version = hdulist[0].header["VERSION"]
+            # Find right data entry
+            if idl_var is None:
+                for key in idl_data.keys():
+                    if idl_data[key].__class__ is np.recarray:
+                        idl_var = key
+                        break
+            if idl_var not in idl_data.keys():
+                raise TypeError("Could not find WHAM data structure in IDL Save File")
 
-        t = Table.read(filename)
+            survey_data = idl_data[idl_var]
 
-        # Set / Fix Units to comply with astropy.units
-        for column in t.columns:
-            if t[column].unit == "DEG":
-                t[column].unit = u.deg
-            elif t[column].unit == "KM/S":
-                t[column].unit = u.km/u.s 
-            elif t[column].unit == "RAYLEIGH/(KM/S)":
-                t[column].unit = u.R / u.km * u.s
-            elif t[column].unit == "(RAYLEIGH/(KM/S))^2":
-                t[column].unit = (u.R / u.km * u.s)**2
-            elif t[column].unit == "RAYLEIGH":
-                t[column].unit = u.R
+            # Covert some columns to float arrays and add to new dictionary
+            data_dict = {}
+            # Standard WHAM IDL Save File Format
+            data_dict["GAL-LON"] = survey_data["GLON"] * u.deg
+            data_dict["GAL-LAT"] = survey_data["GLAT"] * u.deg
+            data_dict["VELOCITY"] = np.vstack(survey_data["VEL"][:][:]) * u.km/u.s
+            data_dict["DATA"] = np.vstack(survey_data["DATA"][:][:]) * u.R * u.s / u.km
+            data_dict["VARIANCE"] = np.vstack(survey_data["VAR"][:][:]) * (u.R * u.s / u.km)**2
 
-        super().__init__(data = t.columns, meta = t.meta, **kwargs)
+            # Extra info from IDL Save Files Dependent on type of File / origin
+            if "INTEN" in survey_data.dtype.names:
+                data_dict["INTEN"] = survey_data["INTEN"] * u.R
+            if "OINTEN" in survey_data.dtype.names:
+                data_dict["OINTEN"] = survey_data["OINTEN"] * u.R
+            if "ERROR" in survey_data.dtype.names:
+                data_dict["ERROR"] = survey_data["ERROR"] * u.R
 
-        del t
+            for name in survey_data.dtype.names:
+                if name not in ("GLON", "GLAT", "VEL", "DATA", "VAR", "INTEN", "OINTEN", "ERROR"):
+                    data_dict[name] = survey_data[name]
+
+            super().__init__(data = data_dict, **kwargs)
+
+            if self["INTEN"] is None:
+                self["INTEN"] = self.moment()
+            if self["ERROR"] is None:
+                _, self["ERROR"] = self.moment(return_sigma = True)
+
+            del data_dict
+            del idl_data
+
+
+
+        else:
+            with fits.open(filename) as hdulist:
+                self.header = hdulist[0].header
+                self.table_header = hdulist[1].header
+
+                self.date = hdulist[0].header["DATE"]
+                self.tag = hdulist[0].header["TAG"]
+                self.version = hdulist[0].header["VERSION"]
+
+            t = Table.read(filename)
+
+            # Set / Fix Units to comply with astropy.units
+            for column in t.columns:
+                if t[column].unit == "DEG":
+                    t[column].unit = u.deg
+                elif t[column].unit == "KM/S":
+                    t[column].unit = u.km/u.s 
+                elif t[column].unit == "RAYLEIGH/(KM/S)":
+                    t[column].unit = u.R / u.km * u.s
+                elif t[column].unit == "(RAYLEIGH/(KM/S))^2":
+                    t[column].unit = (u.R / u.km * u.s)**2
+                elif t[column].unit == "RAYLEIGH":
+                    t[column].unit = u.R
+
+            super().__init__(data = t.columns, meta = t.meta, **kwargs)
+
+            del t
 
 
 

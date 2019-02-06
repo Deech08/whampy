@@ -4,6 +4,7 @@ include CHANGES.rst
 include ah_bootstrap.py
 include setup.cfg
 include whampy/data/*.fits
+include whampy/data/*.sav
 
 
 recursive-include whampy *.pyx *.c *.pxd

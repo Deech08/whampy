@@ -37,6 +37,7 @@ Getting started
   :maxdepth: 1
 
   installing.rst
+  loading_data.rst
   intensity_maps.rst
   moment_maps.rst
   click_maps.rst
