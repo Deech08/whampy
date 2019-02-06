@@ -1,7 +1,7 @@
 Making Sky Maps with `whampy`
 =============================
 
-The :class:`.skySurvey.SkySurvey` class has a method `~whampyTableMixin.intensity_map` that allows for 
+The :class:`~whampy.skySurvey.SkySurvey` class has a method `~whampy.whampyTableMixin.intensity_map` that allows for 
 quick plotting of WHAM beams colored by their intensity with the help of matplotlib::
 
     >>> from whampy.skySurvey import SkySurvey

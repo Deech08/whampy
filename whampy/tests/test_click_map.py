@@ -88,3 +88,13 @@ def test_basic_click_projection():
 	event.ydata = 5
 	click_map.on_click(event)
 	return plt.gcf()
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+def test_basic_click_projection_kwarg():
+	import cartopy.crs as ccrs
+	"""
+	Test init without fig
+	"""
+	fig = plt.figure()
+	click_map = survey.click_map(fig = fig, projection = ccrs.Mollweide())
+	return plt.gcf()

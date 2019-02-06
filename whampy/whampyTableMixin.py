@@ -207,7 +207,7 @@ class SkySurveyMixin(object):
         """
         plots the intensity map using WHAM beams as scatter plots
 
-        Parrameters
+        Parameters
         -----------
         
         fig: 'plt.figure', optional, must be keyword
