@@ -83,9 +83,9 @@ class SkySurvey(SkySurveyMixin, Table):
 
             super().__init__(data = data_dict, **kwargs)
 
-            if self["INTEN"] is None:
+            if "INTEN" not in data_dict:
                 self["INTEN"] = self.moment()
-            if self["ERROR"] is None:
+            if "ERROR" not in data_dict:
                 _, self["ERROR"] = self.moment(return_sigma = True)
 
             del data_dict

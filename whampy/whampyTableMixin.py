@@ -143,6 +143,11 @@ class SkySurveyMixin(object):
 
         # Mask out nan values
         nan_msk = np.isnan(self["DATA"]) | np.isnan(self["VELOCITY"])
+        # Mask out negative data values
+        nan_msk |= self["DATA"] < 0.
+
+        if return_sigma:
+            nan_msk |= np.isnan(self["VARIANCE"])
 
         # Velocity mask if applicable:
         if vmin is not None:
@@ -150,14 +155,14 @@ class SkySurveyMixin(object):
                 logging.warning("No units specified for vmin, assuming u.km/u.s")
                 vmin *= u.km/u.s
 
-            nan_msk &= np.invert(self["VELOCITY"] >= vmin.to(u.km/u.s).value)
+            nan_msk |= self["VELOCITY"] <= vmin.to(u.km/u.s).value
 
         if vmax is not None:
             if not isinstance(vmax, u.Quantity):
                 logging.warning("No units specified for vmax, assuming u.km/u.s")
                 vmax *= u.km/u.s
 
-            nan_msk &= np.invert(self["VELOCITY"] <= vmax.to(u.km/u.s).value)
+            nan_msk |= self["VELOCITY"] >= vmax.to(u.km/u.s).value
 
         data_masked = np.ma.masked_array(self["DATA"], mask = nan_msk)
         vel_masked = np.ma.masked_array(self["VELOCITY"], mask = nan_msk)
@@ -166,23 +171,25 @@ class SkySurveyMixin(object):
         # Zeroth Order Moment
         moment_0 = np.trapz(data_masked, x = vel_masked, 
             axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
-        var_0 = np.trapz(var_masked, x = vel_masked**2, 
-                axis = 1) * self["VARIANCE"].unit * self["VELOCITY"].unit**2
+        err_0 = np.trapz(np.sqrt(var_masked), x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
 
         if order > 0:
             moment_1 = np.trapz(data_masked * vel_masked, x = vel_masked, 
                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / moment_0
-            var_1_subover_mom_1 = np.sqrt(np.trapz(var_masked * vel_masked**2, x = vel_masked**2, 
-                            axis = 1) * self["VARIANCE"].unit * self["VELOCITY"].unit**4) / (moment_1 * moment_0)
-            err_1 = moment_1 * (var_1_subover_mom_1 + np.sqrt(var_0) / moment_0)
+            err_1_subover_mom_1 = np.trapz(np.sqrt(var_masked) * vel_masked**2, x = vel_masked, 
+                            axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
+            err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
             if order > 1:
                 moment_2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2, 
                     x = vel_masked, 
                     axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / moment_0
-                var_2_subover_mom_2 = np.sqrt(np.trapz(var_masked * (vel_masked - moment_1.value[:,None])**4, 
-                    x = vel_masked**2, 
-                    axis = 1) * self["VARIANCE"].unit * self["VELOCITY"].unit**6) / (moment_2 * moment_0)
-                err_2 = moment_2 * (var_2_subover_mom_2 + np.sqrt(var_0) / moment_0)
+                print(moment_2.unit)
+                err_2_subover_mom2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked / 
+                                data_masked**2 + 2*(err_1[:,None] / moment_1[:,None])**2), 
+                    x = vel_masked, 
+                    axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / (moment_2 * moment_0)
+                print(err_2_subover_mom2.unit)
+                err_2 = moment_2 * np.sqrt(err_2_subover_mom2**2 + (err_0 / moment_0)**2)
                 if return_sigma:
                     return moment_2, err_2
                 else:
@@ -194,7 +201,7 @@ class SkySurveyMixin(object):
                     return moment_1
         else:
             if return_sigma:
-                return moment_0, np.sqrt(var_0)
+                return moment_0, err_0
             else:
                 return moment_0
 
