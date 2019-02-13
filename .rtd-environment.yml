@@ -10,10 +10,12 @@ dependencies:
     - numpy
     - matplotlib
     - cartopy
+    - regions
     # - pyproj
     # - pyshp
     # - proj4
     # - pip
-    # - pip:
+    - pip:
+        - spectral_cube
     #     - git+https://github.com/matplotlib/basemap.git
 #       - dependency_from_pip

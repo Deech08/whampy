@@ -28,3 +28,25 @@ also pass in your own set of figure and axes instances to customize the orientat
 .. image:: images/custom_click_map.png
    :width: 600
 
+Making Interactive Maps that overplot Additional Spectra
+--------------------------------------------------------
+
+You can also make these interactive maps and have clicks additionally plot another spectra from a different source.
+This additional data can be from a FITS Data cube or another SkySurvey object for other wavelength WHAM observations.
+
+This feature uses the `spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>` package to handle FITS data cubes::
+
+	>>> fits_cube_path = "hi_data_cube.fits"
+	>>> fig = plt.figure()
+	>>> click_map = survey.click_map(fig = fig, over_data = fits_cube_path)
+
+.. image:: images/over_data_click_map.png
+   :width: 600
+
+You can set the velocity range to be static to focus on certain regions if desired::
+
+	>>> spec_ax = click_map.line_ax
+	>>> spec_ax.set_xlim([-150,30])
+
+.. image:: images/over_data_click_map_custom_xlim.png
+   :width: 600

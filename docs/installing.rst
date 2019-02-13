@@ -12,6 +12,13 @@ This package has the following dependencies:
 * `matplotlib <https://matplotlib.org/>`_ 3.0 or later
 * `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_0.17.0 or later
 
+Optional to overplot FITS Data cubes in click_map
+* `spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>`_ >=0.4.4
+* `pyregion <https://pyregion.readthedocs.io/en/latest/>`_>=2.0
+* `Regions <https://astropy-regions.readthedocs.io/en/latest>`_ >=0.3dev, optional
+  (Serialises/Deserialises DS9/CRTF region files and handles them. Used when
+  extracting a subcube from region)
+
 Installation
 ------------
 

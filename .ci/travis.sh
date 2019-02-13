@@ -21,6 +21,8 @@ conda install -q numpy=$NUMPY_VERSION setuptools pytest pytest-cov pip sphinx ma
 pip install coveralls
 pip install astropy
 pip install pytest-mpl
+pip install spectral-cube
+pip install --no-deps pyregion
 
 # Build the extension
 python setup.py develop

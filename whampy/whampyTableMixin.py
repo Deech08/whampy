@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 # from mpl_toolkits.basemap import Basemap
 import cartopy.crs as ccrs
-
+from spectral_cube import SpectralCube
 
 
 from astropy.coordinates import SkyCoord
@@ -29,18 +29,67 @@ class SpectrumPlotter():
         line that will be updated to match clicked spectra
     data:   'SkySurvey', optional, must be keyword
         WHAM data
+    over_data:  'SkySurvey' or 'str' or 'spectral_cube.SpectralCube', optional, must be keyword
+        Extra data to over plot spectra from
+        if SkySurvey, assumed to be WHAM observations, perhaps at another wavelength
+        if 'str', assumed to be a 3D FITS Data cube filename to be loaded as SpectralCube
+        if 'SpectralCube', defaults to extracting closest spectra to click
+    over_line: matplotlib.line.Line2D', optional, must be keyword
+        if over_data, must be provided
+        line that will be udpated to match clicked spectra from over_data
+    average_beam: 'bool', optional, must be keyword
+        if True, instead over plots average spectrum from over_data within nearest WHAM beam
+    radius: 'Quantity' or  'number', optional, must be keyword
+        beam radius to average beam over if avreage_beam is True
+        default is 0.5 degrees (WHAM beam)
+
+
+
 
 
     """
-    def __init__(self, image_ax, line, data = None):
+    def __init__(self, image_ax, line, data = None, over_data = None, over_line = None, 
+        average_beam = False, radius = None):
         self.line = line
         self.image_ax = image_ax
         self.line_ax = line.axes
+        self.over_data = over_data
+        self.average_beam = average_beam
+        self.radius = radius
+
         if hasattr(self.image_ax, 'coastlines'):
             self.geo = True
         else:
             self.geo = False
+        if hasattr(self.image_ax, 'wcs'):
+            self.wcs_axes = True
+        else:
+            self.wcs_axes = False
         self.data = data
+        if self.over_data is not None:
+            if over_data.__class__ is str:
+                try:
+                    self.over_data = SpectralCube.read(over_data)
+                except OSError:
+                    logging.warning("Could not read over_data")
+                else:
+                    self.over_type = "SpectralCube"
+            elif hasattr(over_data, 'minimal_subcube'):
+                # Checks if it is a SpectralCube or wrapper class of SpectralCube
+                self.over_data = over_data
+                self.over_type = "SpectralCube"
+            elif hasattr(over_data, 'intensity_map'):
+                # Checks if it is a SkySurvey object
+                self.over_data = over_data
+                self.over_type = "SkySurvey"
+            if self.average_beam:
+                if self.radius is None:
+                    self.radius = 0.5 * u.deg
+                elif not isinstance(radius, u.Quantity):
+                    self.radius = radius * u.deg # Assume Default Units
+                else:
+                    self.radius = radius
+        self.over_line = over_line
         self.cid = self.line.figure.canvas.mpl_connect("button_press_event", self.on_click)
     def on_click(self, event):
         if event.button is 1: # left mouse click
@@ -52,6 +101,12 @@ class SpectrumPlotter():
                 if self.geo: # if cartopy axes with projection info
                     # Convert coordinates to standard longitude and latitude
                     lon, lat = ccrs.PlateCarree().transform_point(lon, lat, self.image_ax.projection)
+                elif self.wcs_axes:
+                    # Covert coordinates from pixel to world
+                    if self.image_ax.wcs.naxis > 2:
+                        lon, lat, _ = self.image_ax.wcs.wcs_pix2world(lon, lat, 0, 0)
+                    else:
+                        lon, lat = self.image_ax.wcs.wcs_pix2world(lon, lat, 0)
                 # Create SKyCoord
                 click_coord = SkyCoord(l = lon*u.deg, b = lat*u.deg, frame = 'galactic')
                 # Find closest Spectrum index
@@ -61,8 +116,76 @@ class SpectrumPlotter():
                 # Update line to be the spectral data
                 self.line.set_data(self.data[closest]["VELOCITY"], 
                                    self.data[closest]["DATA"])
+                if self.over_line is not None:
+                    if self.over_line.axes == self.line_ax:
+                        self.over_line.set_data([0],[0])
                 self.line_ax.relim()
                 self.line_ax.autoscale_view() # Rescale axes to cover data
+
+                # Draw over_line if needed:
+                if self.over_line is not None:
+                    if self.over_type == 'SkySurvey':
+                        closest = self.over_data.get_spectrum(click_coord, index = True)
+                        galCoord = self.data.get_SkyCoord()[closest]
+
+                        # Update line to be the spectral data
+                        self.over_line.set_data(self.over_data[closest]["VELOCITY"], 
+                                           self.over_data[closest]["DATA"])
+                        self.over_line.axes.relim()
+                        self.over_line.axes.autoscale_view() # Rescale axes to cover data
+
+                    elif self.over_type == 'SpectralCube':
+                        if not self.average_beam:
+                            # find index of closest value
+                            _, lat_axis_values, _ = self.over_data.world[int(self.over_data.shape[0]/2), :, 
+                                                                            int(self.over_data.shape[2]/2)]
+                            lat_slice = np.nanargmin(np.abs(lat_axis_values-click_coord.b))
+
+                            _, _, lon_axis_values = self.over_data.world[int(self.over_data.shape[0]/2), 
+                                                                            int(self.over_data.shape[1]/2), :]
+                            # Ensure all angles are wrapped at 180
+                            lon_axis_values = Angle(lon_axis_values).wrap_at("180d")
+                            lon_slice = np.nanargmin(np.abs(lon_axis_values-click_coord.l.wrap_at("180d")))
+                            self.over_line.set_data(self.over_data.spectral_axis.to(u.km/u.s).value, 
+                                                    self.over_data.unmasked_data[:,lat_slice,lon_slice].value)
+                        else:
+                            ds9_str = 'Galactic; circle({0:.3}, {1:.4}, {2:.4}")'.format(click_coord.l.wrap_at("180d").value, 
+                                                                         click_coord.b.value, 
+                                                                         self.radius.to(u.arcsec).value)
+                            _, lat_axis_values, _ = self.over_data.world[int(self.over_data.shape[0]/2), :, int(self.over_data.shape[2]/2)]
+                            lat_slice_up = np.nanargmin(np.abs(lat_axis_values-click_coord.b+self.radius*1.5))
+                            lat_slice_down = np.nanargmin(np.abs(lat_axis_values-click_coord.b-self.radius*1.5))
+                            lat_slices = np.sort([lat_slice_up, lat_slice_down])
+                            if np.abs(lat_slices[0] - lat_slices[1]) < 3:
+                                logging.warning("Specified beam radius is smaller than cube resolution in latitude")
+                                lat_slices[1] += 2
+                                lat_slices[0] -= 2
+
+                            _, _, lon_axis_values = self.over_data.world[int(self.over_data.shape[0]/2), int(self.over_data.shape[1]/2), :]
+                            # Ensure all angles are wrapped at 180
+                            lon_axis_values = Angle(lon_axis_values).wrap_at("180d")
+                            lon_slice_up = np.nanargmin(np.abs(lon_axis_values-click_coord.l.wrap_at("180d")+self.radius*1.5))
+                            lon_slice_down = np.nanargmin(np.abs(lon_axis_values-click_coord.l.wrap_at("180d")-self.radius*1.5))
+                            lon_slices = np.sort([lon_slice_up, lon_slice_down])
+                            if np.abs(lon_slices[0] - lon_slices[1]) < 3:
+                                logging.warning("Specified beam radius is smaller than cube resolution in longitude")
+                                lon_slices[1] += 2
+                                lon_slices[0] -= 2
+
+                            smaller_cube = self.over_data[:,lat_slices[0]:lat_slices[1], lon_slices[0]:lon_slices[1]]
+                            subcube = smaller_cube.subcube_from_ds9region(ds9_str)
+                            spectrum = subcube.mean(axis = (1,2))
+                            self.over_line.set_data(spectrum.spectral_axis.to(u.km/u.s).value, 
+                                                    spectrum.value)
+                        if self.over_line.axes != self.line_ax:
+                            self.over_line.axes.relim()
+                            self.over_line.axes.autoscale_view() # Rescale axes to cover data
+                            if self.over_type == 'SkySurvey':
+                                self.over_line.axes.set_ylabel("Intensity ({0})".format(self.over_data["DATA"].unit), 
+                                                fontsize = 12)
+                            else:
+                                self.over_line.axes.set_ylabel("Intensity ({0})".format(self.over_data.unmasked_data[0,0,0].unit), 
+                                                fontsize = 12)
 
                 # Set Labels
                 self.line_ax.set_ylabel("Intensity ({0})".format(self.data["DATA"].unit), 
@@ -71,8 +194,12 @@ class SpectrumPlotter():
                                                                                                 galCoord.l.wrap_at("180d").value, 
                                                                                                 galCoord.b.value), 
                                         fontsize = 12)
+
                 # Draw the Line
-                self.line.figure.canvas.draw() 
+                self.line.figure.canvas.draw()
+                
+
+
 
 
 class SkySurveyMixin(object):
@@ -300,10 +427,20 @@ class SkySurveyMixin(object):
                 kwargs["transform"] = ccrs.PlateCarree()
                 print("No transform specified with cartopy axes projection, assuming PlateCarree")
 
+        lon_points = wham_coords.l.wrap_at("180d")
+        lat_points = wham_coords.b.wrap_at("180d")
+
+        if hasattr(ax, "wcs"):
+            naxis = ax.wcs.naxis
+            if naxis == 3:
+                lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
+            else:
+                lon_points, lat_points = ax.wcs.wcs_world2pix(lon_points, lat_points, 0)
+
 
 
         # Plot the WHAM beams
-        sc = ax.scatter(wham_coords.l.wrap_at("180d"), wham_coords.b.wrap_at("180d"), **kwargs)
+        sc = ax.scatter(lon_points, lat_points, **kwargs)
 
         if not hasattr(ax, "coastlines"):
             if (lrange is not None) & (brange is not None):
@@ -336,7 +473,12 @@ class SkySurveyMixin(object):
             return fig
 
     def click_map(self, fig = None, image_ax = None, spec_ax = None, 
-                    projection = None, spectra_kwargs = {}, **kwargs):
+                    projection = None, spectra_kwargs = {}, 
+                    over_data = None, average_beam = False, 
+                    radius = None, over_spectra_kwargs = {}, 
+                    over_spec_ax = None, share_yaxis = False,
+                     **kwargs):
+                    
         """
         Interactive plotting of WHAM data to plot spectra when clicking on map
 
@@ -349,11 +491,29 @@ class SkySurveyMixin(object):
             if provided, will plot image/map on these axes
             can provide ax as a cartpy projection that contains different map projections 
         spec_ax: 'plt.figure.axes', optional, must be keyword
-            if provided, will plot apectra on these axes
+            if provided, will plot spectra on these axes
         projection:   'ccrs.projection'
             if provided, will be passed to creating a map with specified cartopy projection
         spectra_kwargs: 'dict', optional, must be keyword
             kwargs passed to plot command for spectra
+        over_data:  'SkySurvey' or 'str' or 'spectral_cube.SpectralCube', optional, must be keyword
+            Extra data to over plot spectra from
+            if SkySurvey, assumed to be WHAM observations, perhaps at another wavelength
+            if 'str', assumed to be a 3D FITS Data cube filename to be loaded as SpectralCube
+            if 'SpectralCube', defaults to extracting closest spectra to click
+        average_beam: 'bool', optional, must be keyword
+            if True, instead over plots average spectrum from over_data within nearest WHAM beam
+        radius: 'Quantity' or  'number', optional, must be keyword
+            beam radius to average beam over if avreage_beam is True
+            default is 0.5 degrees (WHAM beam)
+        over_spectra_kwargs: 'dict', optional, must be keyword
+            kwargs passed to plot command for over_spectra
+        over_spec_ax: 'plt.figure.axes', optional, must be keyword
+            if provided, will plot over_spectra on these axes
+        share_yaxis: 'bool', optional, must be keyword
+            if True, over_spectra shares same y_axis as spectra
+            if False, over_spec_ax has a unique y_axis
+            if over_spec_ax is provided, share_yaxis is not used
         **kwargs: 'dict', must be keywords
             passed to `SkySurvey.intensity_map`
         """
@@ -369,6 +529,15 @@ class SkySurveyMixin(object):
             # make room for spectra at bottom
             fig.subplots_adjust(bottom = 0.5)
             spec_ax = fig.add_axes([0.1, .1, .8, .3])
+        if not hasattr(over_spec_ax, 'scatter'):
+            if over_data is not None:
+                if share_yaxis:
+                    # Same axis for both spectra
+                    over_spec_ax = spec_ax
+                else:
+                    # Shared x axis but unique y axes
+                    over_spec_ax = spec_ax.twinx()
+
 
         # Plot image
         fig = self.intensity_map(fig = fig, ax = image_ax, **kwargs)
@@ -381,12 +550,31 @@ class SkySurveyMixin(object):
         if ("ls" not in spectra_kwargs) & ("linestyle" not in spectra_kwargs):
             spectra_kwargs["ls"] = '-'
 
+
+
         # Empty line
         spec, = spec_ax.plot([0],[0], **spectra_kwargs)
 
-        return SpectrumPlotter(image_ax, spec, data = self)
+        # Over Plot extra Spectra if needed
+        if over_data is not None:
+            if ("lw" not in over_spectra_kwargs) & ("linewidth" not in over_spectra_kwargs):
+                over_spectra_kwargs["lw"] = 1
+            if ("c" not in over_spectra_kwargs) & ("color" not in over_spectra_kwargs):
+                over_spectra_kwargs["c"] = 'blue'
+            if ("ls" not in over_spectra_kwargs) & ("linestyle" not in over_spectra_kwargs):
+                over_spectra_kwargs["ls"] = '--'
 
-        # return fig
+            # Empty line 
+            over_spec, = over_spec_ax.plot([0],[0], **over_spectra_kwargs)
+        else:
+            over_spec = None
+
+        return SpectrumPlotter(image_ax, spec, 
+                                data = self, 
+                                over_data = over_data, 
+                                over_line = over_spec, 
+                                average_beam = average_beam, 
+                                radius = radius)
 
 
 
