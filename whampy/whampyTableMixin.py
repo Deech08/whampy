@@ -68,12 +68,8 @@ class SpectrumPlotter():
         self.data = data
         if self.over_data is not None:
             if over_data.__class__ is str:
-                try:
-                    self.over_data = SpectralCube.read(over_data)
-                except OSError:
-                    logging.warning("Could not read over_data")
-                else:
-                    self.over_type = "SpectralCube"
+                self.over_data = SpectralCube.read(over_data)
+                self.over_type = "SpectralCube"
             elif hasattr(over_data, 'minimal_subcube'):
                 # Checks if it is a SpectralCube or wrapper class of SpectralCube
                 self.over_data = over_data
@@ -103,10 +99,8 @@ class SpectrumPlotter():
                     lon, lat = ccrs.PlateCarree().transform_point(lon, lat, self.image_ax.projection)
                 elif self.wcs_axes:
                     # Covert coordinates from pixel to world
-                    if self.image_ax.wcs.naxis > 2:
-                        lon, lat, _ = self.image_ax.wcs.wcs_pix2world(lon, lat, 0, 0)
-                    else:
-                        lon, lat = self.image_ax.wcs.wcs_pix2world(lon, lat, 0)
+                    lon, lat, _ = self.image_ax.wcs.wcs_pix2world(lon, lat, 0, 0)
+
                 # Create SKyCoord
                 click_coord = SkyCoord(l = lon*u.deg, b = lat*u.deg, frame = 'galactic')
                 # Find closest Spectrum index
@@ -156,10 +150,7 @@ class SpectrumPlotter():
                             lat_slice_up = np.nanargmin(np.abs(lat_axis_values-click_coord.b+self.radius*1.5))
                             lat_slice_down = np.nanargmin(np.abs(lat_axis_values-click_coord.b-self.radius*1.5))
                             lat_slices = np.sort([lat_slice_up, lat_slice_down])
-                            if np.abs(lat_slices[0] - lat_slices[1]) < 3:
-                                logging.warning("Specified beam radius is smaller than cube resolution in latitude")
-                                lat_slices[1] += 2
-                                lat_slices[0] -= 2
+
 
                             _, _, lon_axis_values = self.over_data.world[int(self.over_data.shape[0]/2), int(self.over_data.shape[1]/2), :]
                             # Ensure all angles are wrapped at 180
@@ -167,10 +158,7 @@ class SpectrumPlotter():
                             lon_slice_up = np.nanargmin(np.abs(lon_axis_values-click_coord.l.wrap_at("180d")+self.radius*1.5))
                             lon_slice_down = np.nanargmin(np.abs(lon_axis_values-click_coord.l.wrap_at("180d")-self.radius*1.5))
                             lon_slices = np.sort([lon_slice_up, lon_slice_down])
-                            if np.abs(lon_slices[0] - lon_slices[1]) < 3:
-                                logging.warning("Specified beam radius is smaller than cube resolution in longitude")
-                                lon_slices[1] += 2
-                                lon_slices[0] -= 2
+
 
                             smaller_cube = self.over_data[:,lat_slices[0]:lat_slices[1], lon_slices[0]:lon_slices[1]]
                             subcube = smaller_cube.subcube_from_ds9region(ds9_str)
@@ -431,11 +419,7 @@ class SkySurveyMixin(object):
         lat_points = wham_coords.b.wrap_at("180d")
 
         if hasattr(ax, "wcs"):
-            naxis = ax.wcs.naxis
-            if naxis == 3:
-                lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
-            else:
-                lon_points, lat_points = ax.wcs.wcs_world2pix(lon_points, lat_points, 0)
+            lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
 
 
 
