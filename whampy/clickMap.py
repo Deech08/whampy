@@ -142,7 +142,7 @@ class SpectrumPlotter():
                             self.over_line.set_data(self.over_data.spectral_axis.to(u.km/u.s).value, 
                                                     self.over_data.unmasked_data[:,lat_slice,lon_slice].value)
                         else:
-                            ds9_str = 'Galactic; circle({0:.3}, {1:.4}, {2:.4}")'.format(click_coord.l.wrap_at("180d").value, 
+                            ds9_str = 'galactic; circle({0:.3}, {1:.4}, {2:.4}")'.format(click_coord.l.wrap_at("180d").value, 
                                                                          click_coord.b.value, 
                                                                          self.radius.to(u.arcsec).value)
                             _, lat_axis_values, _ = self.over_data.world[int(self.over_data.shape[0]/2), :, int(self.over_data.shape[2]/2)]
