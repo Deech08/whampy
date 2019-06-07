@@ -59,6 +59,42 @@ def test_track_shape_error():
     else:
         assert False
 
+def test_track_lv_only():
+    """
+    ensure 2 column track shape works
+    """
+    track = np.arange(20).reshape(10,2)
+    track2 = np.zeros((10,6))
+    track2[:,0] = track[:,0]
+    track2[:,2] = track[:,1]
+    spiral_arm = survey.get_spiral_slice(track = track)
+    spiral_arm2 = survey.get_spiral_slice(track = track2)
+
+    assert np.allclose(spiral_arm["INTEN"], spiral_arm2["INTEN"], equal_nan = True)
+    
+
+def test_no_specification_error():
+    """
+    ensure SyntaxError raised if no track or filename provided
+    """
+    try:
+        bad_arm = survey.get_spiral_slice()
+    except SyntaxError:
+        assert True
+    else:
+        assert False
+
+def test_no_track_data_error():
+    """
+    ensure KeyError raised if bad track format provided
+    """
+    try:
+        bad_arm = survey.get_spiral_slice(track = "fakeSpiral")
+    except KeyError:
+        assert True
+    else:
+        assert False
+
 def test_vel_width():
     """
     ensure different velocity widths work
