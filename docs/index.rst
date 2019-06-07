@@ -14,14 +14,14 @@ Quick Start
 
 Here is a simple script demonstrating the modspectra package:
 
-	>>> from whampy.skySurvey import SkySurvey
-	>>> # Load the Survey
-	>>> survey = SkySurvey()
+    >>> from whampy.skySurvey import SkySurvey
+    >>> # Load the Survey
+    >>> survey = SkySurvey()
 
-	>>> # Compute Moments
-	>>> moment_0, err_0 = survey.moment(order = 0, return_sigma = True)
-	>>> moment_1, err_1 = survey.moment(order = 1, return_sigma = True)
-	>>> moment_2, err_2 = survey.moment(order = 2, return_sigma = True)
+    >>> # Compute Moments
+    >>> moment_0, err_0 = survey.moment(order = 0, return_sigma = True)
+    >>> moment_1, err_1 = survey.moment(order = 1, return_sigma = True)
+    >>> moment_2, err_2 = survey.moment(order = 2, return_sigma = True)
 
 
 Using whampy
