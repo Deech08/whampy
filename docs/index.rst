@@ -41,3 +41,4 @@ Getting started
   intensity_maps.rst
   moment_maps.rst
   click_maps.rst
+  spiral_arms.rst

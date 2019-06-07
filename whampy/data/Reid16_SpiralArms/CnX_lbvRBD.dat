@@ -1,0 +1,6 @@
+! CnX_lbv.dat: extension of near Connecting arm which bifurcates in latitude
+!    used CnN_lbvRBD.dat and adjusted latitudes and velocities and restricted longitudes
+     8.000     0.00     70.        1.351   112.814     8.951
+     9.000    -0.05     70.        1.416   103.911     8.789
+    10.000    -0.10     70.        1.506    95.918     8.626
+    11.000    -0.20     70.        1.615    88.880     8.464

@@ -15,6 +15,8 @@ from astropy.coordinates import Angle
 
 from .clickMap import SpectrumPlotter
 
+from .lbvTracks import get_spiral_slice
+
 
 
 
@@ -68,7 +70,8 @@ class SkySurveyMixin(object):
         else:
             return self[closest_ind]
 
-    def moment(self, order = None, vmin = None, vmax = None, return_sigma = False):
+    def moment(self, order = None, vmin = None, vmax = None, 
+        return_sigma = False, masked = False):
         """
         compute moment maps 
 
@@ -82,6 +85,8 @@ class SkySurveyMixin(object):
             max Velocity, default units of km/s
         return_sigma: 'bool', optional, must be keyword
             if True, will also return one-sigma gaussian error estimate
+        masked: `bool`, optional, must be keyword
+            if True, used masked velocity axis
         """
 
         if order is None:
@@ -91,6 +96,10 @@ class SkySurveyMixin(object):
         nan_msk = np.isnan(self["DATA"]) | np.isnan(self["VELOCITY"])
         # Mask out negative data values
         nan_msk |= self["DATA"] < 0.
+
+        # masked velocity axis
+        if masked:
+            nan_msk |= np.invert(self["VEL_MASK"])
 
         if return_sigma:
             nan_msk |= np.isnan(self["VARIANCE"])
@@ -250,7 +259,10 @@ class SkySurveyMixin(object):
         lat_points = wham_coords.b.wrap_at("180d")
 
         if hasattr(ax, "wcs"):
-            lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
+            if ax.wcs.naxis == 3:
+                lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
+            elif ax.wcs.naxis == 2:
+                lon_points, lat_points = ax.wcs.wcs_world2pix(lon_points, lat_points, 0)
 
 
 
@@ -390,6 +402,35 @@ class SkySurveyMixin(object):
                                 over_line = over_spec, 
                                 average_beam = average_beam, 
                                 radius = radius)
+
+    def get_spiral_slice(self, **kwargs):
+        """
+        Returns SkySurvey object isolated to velocity ranges corresponding to specified spiral arm
+
+        Parameters
+        ----------
+        track: 'np.ndarray', 'str', optional, must be keyword
+            if 'numpy array', lbv_RBD track data
+            if 'str', name of spiral arm from Reid et al. (2016)
+        filename: 'str', optional, must be keyword
+            filename of track file to read in using whampy.lbvTracks.get_lbv_track
+        brange: 'list', 'u.Quantity'
+            min,max latitude to restrict data to
+            Default of +/- 40 deg
+        lrange: 'list', 'u.Quantity'
+            min,max longitude to restrict data to
+            Default of full track extent
+        interpolate: 'bool', optional, must be keyword
+            if True, interpolates velocity to coordinate of pointings
+            if False, ... do nothing ... for now
+                Future: slices have velocities set by track 
+        wrap_at_180: `bool`, optional, must be keyword
+                if True, wraps longitude angles at 180d
+                use if mapping accross Galactic Center
+        vel_width: `number`, `u.Quantity`, optional, must be keyword
+            velocity width to isolate in km/s
+        """
+        return get_spiral_slice(self, **kwargs)
 
 
 

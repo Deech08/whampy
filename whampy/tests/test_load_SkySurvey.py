@@ -123,6 +123,22 @@ def test_section_rect():
 
     assert rect["DATA"].unit == u.R / u.km * u.s
 
+def test_section_no_wrap():
+    from astropy.coordinates import Angle
+    from astropy.coordinates import SkyCoord
+    """
+    Ensure survey section extraction works
+    """
+
+    l = Angle(np.random.random(2) * 360.*u.deg).wrap_at("360d")
+    b = Angle((np.random.random(2) * 180.*u.deg) - 90*u.deg)
+
+    bounds = [l.min().value, l.max().value, b.min().value, b.max().value]
+
+    rect = survey.sky_section(bounds, wrap_at_180 = False)
+
+    assert rect["DATA"].unit == u.R / u.km * u.s
+
 def test_bounds_error():
     try:
         survey.sky_section(np.random.random(5))

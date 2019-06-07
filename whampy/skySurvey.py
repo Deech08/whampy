@@ -123,7 +123,7 @@ class SkySurvey(SkySurveyMixin, Table):
 
 
 
-    def sky_section(self, bounds, radius = None):
+    def sky_section(self, bounds, radius = None, wrap_at_180 = True):
         """
         Extract a sub section of the survey from the sky
 
@@ -142,7 +142,14 @@ class SkySurvey(SkySurveyMixin, Table):
                 length 2 specifies two corners of rectangular region
         radius: 'number' or 'Quantity', optional, must be keyword
             sets radius of circular region
+        wrap_at_180: `bool`, optional, must be keyword
+            if True, wraps longitude angles at 180d
+            use if mapping accross Galactic Center
         """
+        if wrap_at_180:
+            wrap_at = "180d"
+        else:
+            wrap_at = "360d"
 
         if not isinstance(bounds, u.Quantity) | isinstance(bounds, SkyCoord):
             bounds *= u.deg
@@ -159,7 +166,7 @@ class SkySurvey(SkySurveyMixin, Table):
                     logging.warning("No units provided for radius, assuming u.deg")
                 center = bounds
             elif len(bounds) >= 2:
-                min_lon, max_lon = bounds.l.wrap_at("180d").min(), bounds.l.wrap_at("180d").max()
+                min_lon, max_lon = bounds.l.wrap_at(wrap_at).min(), bounds.l.wrap_at(wrap_at).max()
                 min_lat, max_lat = bounds.b.min(), bounds.l.max()
         elif len(bounds) == 2:
             if radius is None:
@@ -169,15 +176,17 @@ class SkySurvey(SkySurveyMixin, Table):
                 logging.warning("No units provided for radius, assuming u.deg")
             center = SkyCoord(l = bounds[0], b = bounds[1], frame = 'galactic')
         elif len(bounds) == 4:
-            min_lon, max_lon, min_lat, max_lat = Angle(bounds).wrap_at("180d")
+            min_lon, max_lon, min_lat, max_lat = Angle(bounds)
+            min_lon = min_lon.wrap_at(wrap_at)
+            max_lon = max_lon.wrap_at(wrap_at)
         else:
             raise TypeError("Input bounds and/or radius are not understood")
 
         # rectangular extraction
         if radius is None:
             # Mask of points inside rectangular region
-            inside_mask = wham_coords.l.wrap_at("180d") <= max_lon
-            inside_mask &= wham_coords.l.wrap_at("180d") >= min_lon
+            inside_mask = wham_coords.l.wrap_at(wrap_at) <= max_lon
+            inside_mask &= wham_coords.l.wrap_at(wrap_at) >= min_lon
             inside_mask &= wham_coords.b <= max_lat
             inside_mask &= wham_coords.b >= min_lat
 
