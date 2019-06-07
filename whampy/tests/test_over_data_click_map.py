@@ -86,7 +86,7 @@ def test_cube_click_event_over():
     click_map.on_click(event)
     return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=20)
 def test_wcs_click_event_over():
     """
     Ensure click map works with wcs axes
@@ -109,7 +109,7 @@ def test_wcs_click_event_over():
     click_map.on_click(event)
     return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=20)
 def test_cube_click_event_over_radius_deg():
     """
     Test click map with sample click event on string load over with radius quantity
@@ -130,7 +130,7 @@ def test_cube_click_event_over_radius_deg():
     click_map.on_click(event)
     return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=20)
 def test_cube_click_event_over_radius_none():
     """
     Test click map with sample click event on string load over with radius not set
