@@ -18,6 +18,7 @@ conda info -a
 conda create --yes -n test python=$PYTHON_VERSION
 source activate test
 conda install -q numpy=$NUMPY_VERSION setuptools pytest pytest-cov pip sphinx matplotlib cartopy
+conda install -c astropy regions
 pip install coveralls
 pip install astropy
 pip install pytest-mpl
