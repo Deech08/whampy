@@ -65,7 +65,7 @@ def test_str_click_event_over():
     click_map.on_click(event)
     return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=20)
 def test_cube_click_event_over():
     """
     Test click map with sample click event on string load over
