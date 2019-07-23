@@ -89,7 +89,7 @@ def test_pandas_dataframe():
     # assert np.allclose(df["INTEN"], df2["INTEN"], equal_nan = True)
     try:
         data2, df2 = survey.get_scale_height_data(track = "SgN", 
-            deredden = False, 
+            deredden = True, 
             return_pandas_dataframe = True)
     except OSError:
         assert True
