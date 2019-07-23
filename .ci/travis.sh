@@ -26,5 +26,7 @@ pip install --no-deps pyregion
 pip install regions
 pip install extinction
 pip install dustmaps
+pip install pandas
+pip install spectral_cube
 # Build the extension
 python setup.py develop
