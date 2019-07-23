@@ -15,7 +15,7 @@ survey = SkySurvey()
 
 BASELINE_DIR = 'baseline'
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_event_over():
     """
     Test click map with sample click event on SkySurvey over
@@ -31,7 +31,7 @@ def test_basic_click_event_over():
     click_map.on_click(event)
     return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_event_over_notsharey():
     """
     Test click map with sample click event on SkySurvey over
@@ -47,7 +47,7 @@ def test_basic_click_event_over_notsharey():
     click_map.on_click(event)
     return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_str_click_event_over():
     """
     Test click map with sample click event on string load over

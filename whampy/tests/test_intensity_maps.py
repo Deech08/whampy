@@ -14,7 +14,7 @@ survey = SkySurvey()
 
 BASELINE_DIR = 'baseline'
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic():
     """
     Basic intensity plot
@@ -22,7 +22,7 @@ def test_basic():
     fig = survey.intensity_map()
     return fig
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_fig_input():
     """
     fig kwarg
@@ -30,7 +30,7 @@ def test_fig_input():
     fig = plt.figure()
     return survey.intensity_map(fig = fig)
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_ax_input():
     """
     ax kwarrg
@@ -39,7 +39,7 @@ def test_ax_input():
     ax = fig.add_subplot(111)
     return survey.intensity_map(ax = ax)
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_ranges():
     """
     lrange and brange
@@ -48,7 +48,7 @@ def test_ranges():
     brange = [-30,30]
     return survey.intensity_map(lrange = lrange * u.deg, brange = brange)
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_ranges_unit():
     """
     lrange and brange
@@ -57,7 +57,7 @@ def test_ranges_unit():
     brange = [-30,30]
     return survey.intensity_map(lrange = lrange, brange = brange*u.deg)
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_colorbar():
     """
     colorbar
@@ -65,7 +65,7 @@ def test_colorbar():
     return survey.intensity_map(colorbar = True, 
         cbar_kwargs = {"orientation":"horizontal"})
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_sc():
     """
     return_sc test
@@ -74,7 +74,7 @@ def test_sc():
     cb = fig.colorbar(sc, orientation = "horizontal")
     return fig
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_cartopy_stereo():
     import cartopy.crs as ccrs
     """
@@ -86,7 +86,7 @@ def test_cartopy_stereo():
         lrange = [40,-40], brange = [-20,20])
     return fig
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_vel_range():
     """
     test velocity range input
@@ -94,7 +94,7 @@ def test_vel_range():
     vel_range = [-20,20]
     return survey.intensity_map(vel_range = vel_range)
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_vel_range_units():
     """
     test velocity range input

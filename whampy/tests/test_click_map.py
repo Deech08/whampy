@@ -13,7 +13,7 @@ survey = SkySurvey()
 
 BASELINE_DIR = 'baseline'
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_event():
 	"""
 	Test click map with sample click event
@@ -29,7 +29,7 @@ def test_basic_click_event():
 	click_map.on_click(event)
 	return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_event_outside():
 	"""
 	Test click map with sample click event
@@ -45,7 +45,7 @@ def test_basic_click_event_outside():
 	click_map.on_click(event)
 	return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_no_fig():
 	"""
 	Test init without fig
@@ -53,7 +53,7 @@ def test_basic_click_no_fig():
 	click_map = survey.click_map()
 	return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_no_imax():
 	"""
 	Test init without fig
@@ -62,7 +62,7 @@ def test_basic_click_no_imax():
 	click_map = survey.click_map(fig = fig)
 	return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_no_specax():
 	"""
 	Test init without fig
@@ -72,7 +72,7 @@ def test_basic_click_no_specax():
 	click_map = survey.click_map(fig = fig, image_ax = ax)
 	return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_projection():
 	import cartopy.crs as ccrs
 	"""
@@ -89,7 +89,7 @@ def test_basic_click_projection():
 	click_map.on_click(event)
 	return plt.gcf()
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR)
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
 def test_basic_click_projection_kwarg():
 	import cartopy.crs as ccrs
 	"""
