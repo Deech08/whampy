@@ -18,7 +18,7 @@ dependencies:
     # - pip
     - pip:
         - spectral_cube
-	- dustmaps
-	- extinction
+        - dustmaps
+        - extinction
     #     - git+https://github.com/matplotlib/basemap.git
 #       - dependency_from_pip
