@@ -24,5 +24,6 @@ pip install pytest-mpl
 pip install spectral-cube
 pip install --no-deps pyregion
 pip install regions
+pip install extinction
 # Build the extension
 python setup.py develop
