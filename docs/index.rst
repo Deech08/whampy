@@ -42,3 +42,4 @@ Getting started
   moment_maps.rst
   click_maps.rst
   spiral_arms.rst
+  stacking.rst

@@ -16,7 +16,8 @@ from astropy.coordinates import Angle
 from .clickMap import SpectrumPlotter
 
 from .lbvTracks import get_spiral_slice
-
+from .scaleHeight import get_scale_height_data
+from .spectralStack import stack_spectra_bootstrap
 
 
 
@@ -431,6 +432,62 @@ class SkySurveyMixin(object):
             velocity width to isolate in km/s
         """
         return get_spiral_slice(self, **kwargs)
+
+    def get_scale_height_data(self, **kwargs):
+        """
+        Return data needed for scale height analysis
+        
+        Parameters
+        ----------
+        data: `skySurvey`
+            WHAM skySurvey object of full sky (requires track keyword), or spiral arm section
+        track: `str`, optional, must be keyword
+            if provided, will apply skySurvey.get_spiral_slice for provided track
+            if None, will check for track as an attribute of data
+        deredden: `bool`, `dustmap`, optional, must be keyword
+            if True, will apply dereddening using 3D dustmaps of Marshall et al. (2006)
+            or can input a dustmap to query from using the dustmaps package
+            default to `dustmaps.marshall.MarshallQuery`
+            Warning: Currently only supports Marshall Dustmap
+        return_pandas_dataframe: `bool`, optional, must be keyword
+            if True, returns pandas dataframe with subset of data specific to scale height analysis
+        **kwargs: `dict`
+            keywords passed to data.get_spiral_slice if track is provided
+        """
+        return get_scale_height_data(self, **kwargs)
+
+    def stack_spectra_bootstrap(self, **kwargs):
+        """
+        Stack all spectra in provided SkySurvey Table
+        
+        Parameters
+        ----------
+        survey: 'whampy.skySurvey'
+            input skySurvey
+        data_column: 'str', optional, must be keyword
+            Name of data column, default of "DATA"
+        variance_column: 'str', optional, must be keyword
+            Name od variance column, defaut of "VARIANCE"
+        velocity: 'np.array, list', optional, must be keyword
+            velocity to interpolate data to for stacking
+            defaults to np.round of first row "VELOCITY"
+        no_interp: 'bool', optional, must be keyword
+            if True, skips interpolating data to same velocity
+            assumes it is already regularly gridded to given velocity
+        n_boot: 'int', optional, must be keyword
+            number of bootstrap samples for each spectrum to stack
+            default of 1000
+        ci: 'number', optional, must be keyword
+            Size of confidence interval to return as errors
+        estimator: 'callable', optional, must be keyword
+            estimator method to use, defaults to `numpy.mean`
+            must take axis keyword
+        set_name: 'str', optional, must be keyword
+            if provided, sets "NAME" column to this in returned stack
+        """
+        return stack_spectra_bootstrap(self, **kwargs)
+
+
 
 
 

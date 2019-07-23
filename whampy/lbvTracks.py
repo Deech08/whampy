@@ -113,7 +113,8 @@ def get_lbv_track(filename = None, reid_track = None, **kwargs):
 
 def get_spiral_slice(survey, track = None, filename = None, 
     brange = None, lrange = None, 
-    interpolate = True, wrap_at_180 = False, vel_width = None):
+    interpolate = True, wrap_at_180 = False, 
+    vel_width = None, return_track = False):
     """
     Returns SkySurvey object isolated to velocity ranges corresponding to specified spiral arm
 
@@ -141,6 +142,8 @@ def get_spiral_slice(survey, track = None, filename = None,
             use if mapping accross Galactic Center
     vel_width: `number`, `u.Quantity`, optional, must be keyword
         velocity width to isolate in km/s
+    return_track: `bool`, optional, must be keyword
+        if True, will also return the spiral arm track as the second element of a tuple
     """
     # Check Track Data
     if track is not None:
@@ -222,7 +225,14 @@ def get_spiral_slice(survey, track = None, filename = None,
     # Set Intensities
     sky_cut["INTEN"], sky_cut["ERROR"] = sky_cut.moment(return_sigma = True, masked = True)
 
-    return sky_cut
+
+    # Save Track info as attribute
+    sky_cut.lbv_RBD_track = track
+
+    if not return_track:
+        return sky_cut
+    else:
+        return sky_cut, track
 
 
 

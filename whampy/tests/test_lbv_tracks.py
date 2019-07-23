@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 from ..skySurvey import SkySurvey
 from ..skySurvey import directory
-
 # Set up the random number generator
 np.random.seed(1234)
 
@@ -129,6 +128,19 @@ def test_interpolation():
         interpolate = False)
 
     assert np.allclose(spiral_arm["INTEN"], spiral_arm2["INTEN"], equal_nan = True)
+
+def test_return_track():
+    """
+    ensure track is returned if called
+    """
+    from ..lbvTracks import get_lbv_track
+    spiral_arm, track = survey.get_spiral_slice(track = "carina_near", 
+        return_track = True)
+    track2 = get_lbv_track(reid_track = "carina_near")
+
+
+    assert np.allclose(track, track2, equal_nan = True)
+
 
 
 
