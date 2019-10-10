@@ -12,6 +12,7 @@ dependencies:
     - cartopy
     - regions
     - pandas
+    - seaborn
     # - pyproj
     # - pyshp
     # - proj4
