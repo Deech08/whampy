@@ -131,5 +131,17 @@ def test_longitude_step_size():
     else:
         assert False
 
+def test_add_kinematic():
+    """
+    ensure adding kinematic distance works
+    """
+    data, df = survey.get_scale_height_data(track = "CrN", 
+        return_pandas_dataframe = True, add_kinematic_distance = True)
+    data2, df2 = survey.get_scale_height_data(track = "CrN", 
+        return_pandas_dataframe = True, add_kinematic_distance = True, 
+        closer = True)
+
+    assert np.allclose(df["INTEN"], df2["INTEN"], equal_nan = True)
+
 
 

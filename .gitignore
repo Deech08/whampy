@@ -58,3 +58,5 @@ distribute-*.tar.gz
 
 # Mac OSX
 .DS_Store
+whampy/data/wham-ss-161116.sav
+whampy/data/sii_161221.sav

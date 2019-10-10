@@ -87,7 +87,7 @@ class SpectrumPlotter():
         self.over_line = over_line
         self.cid = self.line.figure.canvas.mpl_connect("button_press_event", self.on_click)
     def on_click(self, event):
-        if event.button is 1: # left mouse click
+        if event.button == 1: # left mouse click
             if event.inaxes is not self.image_ax: 
                 return # if click is not on image, nothing happens
             else:

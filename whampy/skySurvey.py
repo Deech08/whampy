@@ -32,94 +32,204 @@ class SkySurvey(SkySurveyMixin, Table):
     idl_var: 'str', optional, must be keyword
         if provided, points to name of IDL structure in sav file containing relevant data
         by default, will take the first variable that is a `numpy.recarray`
-
+    file_list: 'str', 'listlike', optional, must be keyword
+        if provided, reads combo fits files directly
+    block_list: 'str', 'listlike', optional, must be keyword
+        if provided, reads combo fits files directly for specified blocks
+    extension: 'str', optional, must be keyword
+        extension to load from fits file
+        deftaul to "ATMSUB"
+    from_table: `astropy.table.Table`, `dictionary`, optional, must be keyword
+        if provided, initializes directly from a Table
 
     """
 
 
-    def __init__(self, filename = None, mode = 'local', idl_var = None,
+    def __init__(self, filename = None, mode = 'local', idl_var = None, 
+                 file_list = None, block_list = None, extension = None, 
+                 from_table = None,
                  **kwargs):
-        if filename is None:
-            if mode == 'local':
-                filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
-            elif mode == 'remote':
-                filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
-        if filename[-4:] == ".sav":
-            # IDL Save File
-            idl_data = readsav(filename)
 
-            # Find right data entry
-            if idl_var is None:
-                for key in idl_data.keys():
-                    if idl_data[key].__class__ is np.recarray:
-                        idl_var = key
-                        break
-            if idl_var not in idl_data.keys():
-                raise TypeError("Could not find WHAM data structure in IDL Save File")
+        if from_table is not None:
+            super().__init__(data = from_table, **kwargs)
+        
 
-            survey_data = idl_data[idl_var]
+        # Check calibrators keyword
+        elif file_list is not None:
+            if isinstance(file_list, str):
+                file_list = [file_list]
+            elif not hasattr(file_list, "__iter__"):
+                raise TypeError("Invalid file_list Type, file_list must be a string, list of strings, or None.")
 
-            # Covert some columns to float arrays and add to new dictionary
-            data_dict = {}
-            # Standard WHAM IDL Save File Format
-            data_dict["GAL-LON"] = survey_data["GLON"] * u.deg
-            data_dict["GAL-LAT"] = survey_data["GLAT"] * u.deg
-            data_dict["VELOCITY"] = np.vstack(survey_data["VEL"][:][:]) * u.km/u.s
-            data_dict["DATA"] = np.vstack(survey_data["DATA"][:][:]) * u.R * u.s / u.km
-            data_dict["VARIANCE"] = np.vstack(survey_data["VAR"][:][:]) * (u.R * u.s / u.km)**2
+            if not isinstance(file_list, np.ndarray):
+                file_list = np.array(file_list)
 
-            # Extra info from IDL Save Files Dependent on type of File / origin
-            if "INTEN" in survey_data.dtype.names:
-                data_dict["INTEN"] = survey_data["INTEN"] * u.R
-            if "OINTEN" in survey_data.dtype.names:
-                data_dict["OINTEN"] = survey_data["OINTEN"] * u.R
-            if "ERROR" in survey_data.dtype.names:
-                data_dict["ERROR"] = survey_data["ERROR"] * u.R
+            if extension is None:
+                extension = "ATMSUB"
 
-            for name in survey_data.dtype.names:
-                if name not in ("GLON", "GLAT", "VEL", "DATA", "VAR", "INTEN", "OINTEN", "ERROR"):
-                    data_dict[name] = survey_data[name]
+            # Check extension exists
+            extension_exists_mask = []
+            for filename in file_list:
+                with fits.open(filename) as hdulist:
+                    extension_exists_mask.append(extension in hdulist)
 
-            super().__init__(data = data_dict, **kwargs)
+            if np.sum(extension_exists_mask) < len(file_list):
+                logging.warning("Not all files in file_list have the extension: {}!".format(extension))
 
-            if "INTEN" not in data_dict:
+            if np.sum(extension_exists_mask) == 0:
+                raise ValueError("No files in file_list have the extension: {}!".format(extension))
+
+            file_dict = {}
+            for ell, filename in enumerate(file_list[extension_exists_mask]):
+
+                with fits.open(filename) as hdulist:
+                    primary_header = hdulist["PRIMARY"].header
+                    atmsub_header = hdulist["ATMSUB"].header
+                    atmsub_data = hdulist["ATMSUB"].data
+
+                # Read in ATMSUB Header Data
+                for key in atmsub_header.keys():
+                    if ell > 0:
+                        file_dict[key].append(atmsub_header[key])
+                    else:
+                        file_dict[key] = [atmsub_header[key]]
+
+                # Read in Spectra
+                for key in atmsub_data.dtype.names:
+                    if ell > 0:
+                        file_dict[key].append(atmsub_data[key])
+                    else:
+                        file_dict[key] = [atmsub_data[key]]
+
+                # Read in some Primary Header Data
+                for key in primary_header.keys():
+                    if key not in atmsub_header.keys():
+                        if ell > 0:
+                            file_dict[key].append(primary_header[key])
+                        else:
+                            file_dict[key] = [primary_header[key]]
+
+
+
+            # Units for Data
+            file_dict["VELOCITY"] *= u.km/u.s
+            file_dict["DATA"] *= u.R / 22.8 # ADU to R
+            file_dict["VARIANCE"] *= u.R**2 / 22.8**2
+
+            super().__init__(data = file_dict, **kwargs)
+
+            if "INTEN" not in file_dict:
                 self["INTEN"] = self.moment()
-            if "ERROR" not in data_dict:
+            if "ERROR" not in file_dict:
                 _, self["ERROR"] = self.moment(return_sigma = True)
 
-            del data_dict
-            del idl_data
+            del file_dict
+            
 
+
+
+
+
+
+
+
+
+        elif block_list is not None:
+            if isinstance(block_list, str):
+                block_list = [block_list]
+            elif not hasattr(block_list, "__iter__"):
+                raise TypeError("Invalid block_list Type, block_list must be a string, list of strings, or None.")
+
+            if extension is None:
+                extension = "ATMSUB"
+            # Not yet implemented
 
 
         else:
-            with fits.open(filename) as hdulist:
-                self.header = hdulist[0].header
-                self.table_header = hdulist[1].header
 
-                self.date = hdulist[0].header["DATE"]
-                self.tag = hdulist[0].header["TAG"]
-                self.version = hdulist[0].header["VERSION"]
 
-            t = Table.read(filename)
+            if filename is None:
+                if mode == 'local':
+                    filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
+                elif mode == 'remote':
+                    filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
-            # Set / Fix Units to comply with astropy.units
-            for column in t.columns:
-                if t[column].unit == "DEG":
-                    t[column].unit = u.deg
-                elif t[column].unit == "KM/S":
-                    t[column].unit = u.km/u.s 
-                elif t[column].unit == "RAYLEIGH/(KM/S)":
-                    t[column].unit = u.R / u.km * u.s
-                elif t[column].unit == "(RAYLEIGH/(KM/S))^2":
-                    t[column].unit = (u.R / u.km * u.s)**2
-                elif t[column].unit == "RAYLEIGH":
-                    t[column].unit = u.R
+            if filename[-4:] == ".sav":
+                # IDL Save File
+                idl_data = readsav(filename)
 
-            super().__init__(data = t.columns, meta = t.meta, **kwargs)
+                # Find right data entry
+                if idl_var is None:
+                    for key in idl_data.keys():
+                        if idl_data[key].__class__ is np.recarray:
+                            idl_var = key
+                            break
+                if idl_var not in idl_data.keys():
+                    raise TypeError("Could not find WHAM data structure in IDL Save File")
 
-            del t
+                survey_data = idl_data[idl_var]
+
+                # Covert some columns to float arrays and add to new dictionary
+                data_dict = {}
+                # Standard WHAM IDL Save File Format
+                data_dict["GAL-LON"] = survey_data["GLON"] * u.deg
+                data_dict["GAL-LAT"] = survey_data["GLAT"] * u.deg
+                data_dict["VELOCITY"] = np.vstack(survey_data["VEL"][:][:]) * u.km/u.s
+                data_dict["DATA"] = np.vstack(survey_data["DATA"][:][:]) * u.R * u.s / u.km
+                data_dict["VARIANCE"] = np.vstack(survey_data["VAR"][:][:]) * (u.R * u.s / u.km)**2
+
+                # Extra info from IDL Save Files Dependent on type of File / origin
+                if "INTEN" in survey_data.dtype.names:
+                    data_dict["INTEN"] = survey_data["INTEN"] * u.R
+                if "OINTEN" in survey_data.dtype.names:
+                    data_dict["OINTEN"] = survey_data["OINTEN"] * u.R
+                if "ERROR" in survey_data.dtype.names:
+                    data_dict["ERROR"] = survey_data["ERROR"] * u.R
+
+                for name in survey_data.dtype.names:
+                    if name not in ("GLON", "GLAT", "VEL", "DATA", "VAR", "INTEN", "OINTEN", "ERROR"):
+                        data_dict[name] = survey_data[name]
+
+                super().__init__(data = data_dict, **kwargs)
+
+                if "INTEN" not in data_dict:
+                    self["INTEN"] = self.moment()
+                if "ERROR" not in data_dict:
+                    _, self["ERROR"] = self.moment(return_sigma = True)
+
+                del data_dict
+                del idl_data
+
+
+
+            else:
+                with fits.open(filename) as hdulist:
+                    self.header = hdulist[0].header
+                    self.table_header = hdulist[1].header
+
+                    self.date = hdulist[0].header["DATE"]
+                    self.tag = hdulist[0].header["TAG"]
+                    self.version = hdulist[0].header["VERSION"]
+
+                t = Table.read(filename)
+
+                # Set / Fix Units to comply with astropy.units
+                for column in t.columns:
+                    if t[column].unit == "DEG":
+                        t[column].unit = u.deg
+                    elif t[column].unit == "KM/S":
+                        t[column].unit = u.km/u.s 
+                    elif t[column].unit == "RAYLEIGH/(KM/S)":
+                        t[column].unit = u.R / u.km * u.s
+                    elif t[column].unit == "(RAYLEIGH/(KM/S))^2":
+                        t[column].unit = (u.R / u.km * u.s)**2
+                    elif t[column].unit == "RAYLEIGH":
+                        t[column].unit = u.R
+
+                super().__init__(data = t.columns, meta = t.meta, **kwargs)
+
+                del t
 
 
 

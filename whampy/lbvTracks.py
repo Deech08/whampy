@@ -216,7 +216,7 @@ def get_spiral_slice(survey, track = None, filename = None,
 
     # Get velocity masks
     # Is there a better way to do this without a loop?
-    sky_cut["VEL_MASK"] = np.empty((len(sky_cut), 151), dtype = bool)
+    sky_cut["VEL_MASK"] = np.empty((len(sky_cut), len(sky_cut[0]["VELOCITY"])), dtype = bool)
     for ell, vel in enumerate(central_velocities):
         mask = sky_cut[ell]["VELOCITY"] <= (vel + vel_width/2).value
         mask &= sky_cut[ell]["VELOCITY"] >= (vel - vel_width/2).value

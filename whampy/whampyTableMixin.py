@@ -71,6 +71,52 @@ class SkySurveyMixin(object):
         else:
             return self[closest_ind]
 
+    def get_spectral_slab(self, vmin, vmax):
+        """
+        returns survey with velocity window cut down
+
+        Parameters
+        ----------
+
+        vmin: `number`, `u.Quantity`
+            Min velocity
+        vmax: `number`, `u.Quantity`
+            Max velocity
+        """
+        if hasattr(vmin, "unit"):
+            vmin = vmin.to(u.km/u.s).value
+        if hasattr(vmax, "unit"):
+            vmin = vmax.to(u.km/u.s).value
+
+
+        velocity_cut_mask = self["VELOCITY"] >= vmin
+        velocity_cut_mask &= self["VELOCITY"] <= vmax
+
+        if velocity_cut_mask.sum() == 0:
+            raise ValueError("No Data within specified velocity range!")
+        else:
+            masked_velocity_entries = np.sum(velocity_cut_mask, axis = 0, dtype = bool)
+
+            new_velocity_column_full = np.copy(self["VELOCITY"])
+            new_velocity_column_full[~velocity_cut_mask] = np.nan
+            new_velocity_column = new_velocity_column_full[:,masked_velocity_entries]
+
+            new_data_column_full = np.copy(self["DATA"]) * self["DATA"].unit
+            new_data_column = new_data_column_full[:,masked_velocity_entries]
+
+            new_variance_column_full = np.copy(self["VARIANCE"]) * self["VARIANCE"].unit
+            new_variance_column = new_variance_column_full[:,masked_velocity_entries]
+
+            self.remove_column("VELOCITY")
+            self["VELOCITY"] = new_velocity_column * u.km/u.s
+
+            self.remove_column("VARIANCE")
+            self["VARIANCE"] = new_variance_column
+
+            self.remove_column("DATA")
+            self["DATA"] = new_data_column
+
+
     def moment(self, order = None, vmin = None, vmax = None, 
         return_sigma = False, masked = False):
         """
@@ -486,6 +532,71 @@ class SkySurveyMixin(object):
             if provided, sets "NAME" column to this in returned stack
         """
         return stack_spectra_bootstrap(self, **kwargs)
+
+    def get_equivalent_width(self, 
+                            intensity = None, 
+                            intensity_error = None, 
+                            continuum = None, 
+                            continuum_error = None, 
+                            return_sigma = True):
+        """
+        Estimate emission line equivalent width
+
+        Parameters
+        ----------
+        continuum: `u.Quantity`, optional, must be keyword
+            Continuum value or values to use
+        continuum_error: `u.Quantity`, optional, must be keyword
+            Continuum error value or values to use
+        intensity: 'u.Quantity', optional, must be keyword
+            Intensity values to use
+        """
+        # Equivalencies
+        ha_wave = 656.3 * u.nm
+
+        optical_ha_equiv = u.doppler_optical(ha_wave)
+
+        # Chanel Width
+        dv = (self["VELOCITY"][0][1] - self["VELOCITY"][0][0]) * u.km/u.s
+        dlambda = (dv).to(u.AA, equivalencies=optical_ha_equiv) - \
+            (0 * u.km/u.s).to(u.AA, equivalencies=optical_ha_equiv)
+
+        if continuum is None:
+            if "BKG" in self.keys():
+                continuum = self["BKG"] / 22.8 * u.R / dlambda
+                if "BKGSD" in self.keys():
+                    continuum_error = self["BKGSD"] / 22.8 * u.R / dlambda
+                elif continuum_error is None:
+                    logging.warning("No Continuum Error Found, using 10% errors instead.")
+                    continuum_error = 0.1 * continuum
+
+            elif not hasattr(continuum, "unit"):
+                raise TypeError("continuum must be Quantity with units flux/Angstrum")
+
+        if intensity is None:
+            ew = self["INTEN"] / continuum
+            if return_sigma:
+                if intensity_error is None: 
+                    ew_error = np.sqrt((self["ERROR"] / self["INTEN"])**2 + \
+                                        (continuum_error / continuum)**2) * ew
+                else:
+                    ew_error = np.sqrt((intensity_error / self["INTEN"])**2 + \
+                                        (continuum_error / continuum)**2) * ew
+        else:
+            ew = intensity / continuum
+            if return_sigma:
+                if intensity_error is None: 
+                    raise TypeError("if intensity is provided, must also provide intensity_error")
+
+                else:
+                    ew_error = np.sqrt((intensity_error / intensity)**2 + \
+                                        (continuum_error / continuum)**2) * ew
+
+        if return_sigma:
+            return ew, ew_error
+        else:
+            return ew
+
 
 
 
