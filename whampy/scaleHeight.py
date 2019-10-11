@@ -286,10 +286,10 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
         y_max = np.tan(max_lat)
         
         try:
-            slope_estimator = stats.siegelslopes()
+            slope_estimator = stats.siegelslopes
         except AttributeError():
             logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
-            slope_estimator = stats.theilslopes()
+            slope_estimator = stats.theilslopes
 
         siegel_result_pos = slope_estimator(yy[(xx > y_min) & (xx < y_max) & ~nan_mask],
                                                xx[(xx > y_min) & (xx < y_max) & ~nan_mask])
