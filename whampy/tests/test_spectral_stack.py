@@ -65,7 +65,7 @@ def test_window_combine_basic():
 
 	stack_1 = cvwb([window_1, window_2], survey_spectra = window_single)
 	stack_2 = cvwb([window_2, window_1], survey_spectra = window_single, set_name = "test")
-	works = np.allclose(stack_1["DATA"], stack_2["DATA"], equal_nan = True, atol = 1e-3)
+	works = np.allclose(stack_1["DATA"], stack_2["DATA"], equal_nan = True, atol = 1e-2)
 	print(works)
 	assert works
 
