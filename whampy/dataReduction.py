@@ -140,8 +140,12 @@ def compute_transmissions(directory, lines = None, calibrator = None, plot = Fal
                 transmissions[line][calibrator_name]["LO_SLOPE_THEIL"] = fit_result[2]
                 transmissions[line][calibrator_name]["UP_SLOPE_THEIL"] = fit_result[3]
                 
-                siegel_result = stats.siegelslopes(np.log(data_dict[line][calibrator_name]["INTEN"]), 
+                try:
+                    siegel_result = stats.siegelslopes(np.log(data_dict[line][calibrator_name]["INTEN"]), 
                                                    data_dict[line][calibrator_name]["AIRMASS"])
+                except AttributeError():
+                    logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
+                    siegel_result = np.array([np.nan, np.nan])
                 
                 transmissions[line][calibrator_name]["SLOPE_SIEGEL"] = siegel_result[0]
                 transmissions[line][calibrator_name]["INTERCEPT_SIEGEL"] = siegel_result[1]

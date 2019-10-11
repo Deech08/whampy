@@ -285,16 +285,21 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
         y_min = np.tan(min_lat)
         y_max = np.tan(max_lat)
         
+        try:
+            slope_estimator = stats.siegelslopes()
+        except AttributeError():
+            logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
+            slope_estimator = stats.theilslopes()
 
-        siegel_result_pos = stats.siegelslopes(yy[(xx > y_min) & (xx < y_max) & ~nan_mask],
+        siegel_result_pos = slope_estimator(yy[(xx > y_min) & (xx < y_max) & ~nan_mask],
                                                xx[(xx > y_min) & (xx < y_max) & ~nan_mask])
-        siegel_result_neg = stats.siegelslopes(yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask],
+        siegel_result_neg = slope_estimator(yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask],
                                                xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask])
         
         if deredden:
-            siegel_result_pos_dr = stats.siegelslopes(zz[(xx > y_min) & (xx < y_max) & ~nan_mask_z],
+            siegel_result_pos_dr = slope_estimator(zz[(xx > y_min) & (xx < y_max) & ~nan_mask_z],
                                                    xx[(xx > y_min) & (xx < y_max) & ~nan_mask_z])
-            siegel_result_neg_dr = stats.siegelslopes(zz[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z],
+            siegel_result_neg_dr = slope_estimator(zz[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z],
                                                    xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z])
 
         slopes_pos.append(siegel_result_pos[0])
