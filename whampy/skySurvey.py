@@ -34,25 +34,75 @@ class SkySurvey(SkySurveyMixin, Table):
         by default, will take the first variable that is a `numpy.recarray`
     file_list: 'str', 'listlike', optional, must be keyword
         if provided, reads combo fits files directly
-    block_list: 'str', 'listlike', optional, must be keyword
-        if provided, reads combo fits files directly for specified blocks
     extension: 'str', optional, must be keyword
         extension to load from fits file
         deftaul to "ATMSUB"
     from_table: `astropy.table.Table`, `dictionary`, optional, must be keyword
         if provided, initializes directly from a Table
+    tuner_list: 'str', 'listlike', optional, must be keyword
+        if provided, reads tuner spectra fits files directly
+
 
     """
 
 
     def __init__(self, filename = None, mode = 'local', idl_var = None, 
-                 file_list = None, block_list = None, extension = None, 
-                 from_table = None,
+                 file_list = None, extension = None, 
+                 from_table = None, tuner_list = None,
                  **kwargs):
 
 
         if from_table is not None:
             super().__init__(data = from_table, **kwargs)
+
+        elif tuner_list is not None:
+            if isinstance(tuner_list, str):
+                tuner_list = [tuner_list]
+            elif not hasattr(tuner_list, "__iter__"):
+                raise TypeError("Invalid tuner_list Type, tuner_list must be a string, list of strings, or None.")
+
+            if not isinstance(tuner_list, np.ndarray):
+                tuner_list = np.array(tuner_list)
+
+            if extension is None:
+                extension = "RAWSPEC"
+
+            file_dict = {}
+            for ell, filename in enumerate(tuner_list):
+                with fits.open(filename) as hdulist:
+                    primary_header = hdulist["PRIMARY"].header
+                    extension_header = hdulist[extension].header
+                    extension_data = hdulist[extension].data
+
+                # Read in Spectra
+                for key in extension_data.dtype.names:
+                    if ell > 0:
+                        file_dict[key].append(extension_data[key])
+                    else:
+                        file_dict[key] = [extension_data[key]]
+
+                # Read in some Primary Header Data
+                for key in primary_header.keys():
+                    if key not in extension_header.keys():
+                        if ell > 0:
+                            file_dict[key].append(primary_header[key])
+                        else:
+                            file_dict[key] = [primary_header[key]]
+
+            # Units for Data
+            file_dict["VELOCITY"] *= u.km/u.s
+            file_dict["DATA"] *= u.R / 22.8 # ADU to R
+            file_dict["VARIANCE"] *= u.R**2 / 22.8**2
+
+            super().__init__(data = file_dict, **kwargs)
+
+            if "INTEN" not in file_dict:
+                self["INTEN"] = self.moment()
+            if "ERROR" not in file_dict:
+                _, self["ERROR"] = self.moment(return_sigma = True)
+
+            del file_dict
+                       
         
 
         # Check calibrators keyword
@@ -85,8 +135,8 @@ class SkySurvey(SkySurveyMixin, Table):
 
                 with fits.open(filename) as hdulist:
                     primary_header = hdulist["PRIMARY"].header
-                    atmsub_header = hdulist["ATMSUB"].header
-                    atmsub_data = hdulist["ATMSUB"].data
+                    atmsub_header = hdulist[extension].header
+                    atmsub_data = hdulist[extension].data
 
                 # Read in ATMSUB Header Data
                 for key in atmsub_header.keys():
@@ -126,24 +176,6 @@ class SkySurvey(SkySurveyMixin, Table):
 
             del file_dict
             
-
-
-
-
-
-
-
-
-
-        elif block_list is not None:
-            if isinstance(block_list, str):
-                block_list = [block_list]
-            elif not hasattr(block_list, "__iter__"):
-                raise TypeError("Invalid block_list Type, block_list must be a string, list of strings, or None.")
-
-            if extension is None:
-                extension = "ATMSUB"
-            # Not yet implemented
 
 
         else:
@@ -209,8 +241,10 @@ class SkySurvey(SkySurveyMixin, Table):
                     self.table_header = hdulist[1].header
 
                     self.date = hdulist[0].header["DATE"]
-                    self.tag = hdulist[0].header["TAG"]
-                    self.version = hdulist[0].header["VERSION"]
+                    if "TAG" in hdulist[0].header.keys():
+                        self.tag = hdulist[0].header["TAG"]
+                    if "VERSION" in hdulist[0].header.keys():
+                        self.version = hdulist[0].header["VERSION"]
 
                 t = Table.read(filename)
 

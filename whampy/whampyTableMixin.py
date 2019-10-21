@@ -19,6 +19,8 @@ from .lbvTracks import get_spiral_slice
 from .scaleHeight import get_scale_height_data
 from .spectralStack import stack_spectra_bootstrap
 
+from scipy.interpolate import griddata
+
 
 
 
@@ -86,11 +88,10 @@ class SkySurveyMixin(object):
         if hasattr(vmin, "unit"):
             vmin = vmin.to(u.km/u.s).value
         if hasattr(vmax, "unit"):
-            vmin = vmax.to(u.km/u.s).value
+            vmax = vmax.to(u.km/u.s).value
 
-
-        velocity_cut_mask = self["VELOCITY"] >= vmin
-        velocity_cut_mask &= self["VELOCITY"] <= vmax
+        velocity_cut_mask = self["VELOCITY"].data >= vmin
+        velocity_cut_mask &= self["VELOCITY"].data <= vmax
 
         if velocity_cut_mask.sum() == 0:
             raise ValueError("No Data within specified velocity range!")
@@ -212,7 +213,8 @@ class SkySurveyMixin(object):
     def intensity_map(self, fig = None, ax = None, lrange = None, brange = None, 
                         vel_range = None,
                         s_factor = 1., colorbar = False, cbar_kwargs = {}, 
-                        return_sc = False, **kwargs):
+                        return_sc = False, 
+                        smooth = False, smooth_res = None, **kwargs):
         """
         plots the intensity map using WHAM beams as scatter plots
 
@@ -238,6 +240,10 @@ class SkySurveyMixin(object):
             dictionary of kwargs to pass to colorbar
         return_sc: 'bool', optional, must be keyword
             if True, returns ax.scatter object before figure
+        smooth: `bool`, optional, must be keyword
+            if True, smooths map using griddata and plots using pcolormesh
+        smooth_res: `number`, optional, must be keyword
+            pixel width in units of degrees
         **kwarrgs: `dict`
             passed to scatter plot
 
@@ -267,14 +273,16 @@ class SkySurveyMixin(object):
         elif isinstance(brange, u.Quantity):
             brange = brange.to(u.deg).value
 
-        if not "s" in kwargs:
-            size = fig.get_size_inches()*fig.dpi
-            if brange is not None:
-                brange_s = brange
-            if lrange is not None:
-                lrange_s = lrange
-            s = np.min([size / np.abs(np.diff(lrange_s)), size / np.abs(np.diff(brange_s))]) * s_factor
-            kwargs["s"] = s
+
+        if not smooth:
+            if not "s" in kwargs:
+                size = fig.get_size_inches()*fig.dpi
+                if brange is not None:
+                    brange_s = brange
+                if lrange is not None:
+                    lrange_s = lrange
+                s = np.min([size / np.abs(np.diff(lrange_s)), size / np.abs(np.diff(brange_s))]) * s_factor
+                kwargs["s"] = s
 
         if not "c" in kwargs:
             if vel_range is None:
@@ -305,16 +313,45 @@ class SkySurveyMixin(object):
         lon_points = wham_coords.l.wrap_at("180d")
         lat_points = wham_coords.b.wrap_at("180d")
 
+        if smooth:
+            if smooth_res is None:
+                smooth_res = 0.2
+            if lrange is None:
+                lrange = lrange_s
+            if brange is None:
+                brange = brange_s
+            if lrange[1] < lrange[0]:
+                gridx = np.flip(np.arange(lrange[1], lrange[0] + smooth_res, smooth_res))
+            else:
+                gridx = np.arange(lrange[0], lrange[1] + smooth_res, smooth_res)
+            gridy = np.arange(brange[0], brange[1] + smooth_res, smooth_res)
+
+            zi = griddata((lon_points, lat_points), kwargs["c"],
+                (gridx[None,:], gridy[:,None]), 
+                method='cubic')
+            
+            c_kwarg = kwargs["c"]
+            del kwargs["c"]
+
         if hasattr(ax, "wcs"):
             if ax.wcs.naxis == 3:
-                lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
+                if smooth:
+                    gridx, gridy, _ = ax.wcs.wcs_world2pix(gridx, gridy, np.zeros_like(gridx), 0)
+                else:
+                    lon_points, lat_points, _ = ax.wcs.wcs_world2pix(lon_points, lat_points, np.zeros_like(lon_points.value), 0)
             elif ax.wcs.naxis == 2:
-                lon_points, lat_points = ax.wcs.wcs_world2pix(lon_points, lat_points, 0)
+                if smooth:
+                    gridx, gridy = ax.wcs.wcs_world2pix(gridx, gridy, 0)
+                else:
+                    lon_points, lat_points = ax.wcs.wcs_world2pix(lon_points, lat_points, 0)
 
 
 
         # Plot the WHAM beams
-        sc = ax.scatter(lon_points, lat_points, **kwargs)
+        if smooth:
+            sc = ax.pcolormesh(gridx, gridy, zi, **kwargs)
+        else:
+            sc = ax.scatter(lon_points, lat_points, **kwargs)
 
         if not hasattr(ax, "coastlines"):
             if (lrange is not None) & (brange is not None):
@@ -337,7 +374,11 @@ class SkySurveyMixin(object):
 
         if colorbar:
             if not "label" in cbar_kwargs:
-                cbar_kwargs["label"] = "H-Alpha Intensity ({})".format(kwargs["c"].unit)
+                if "c" in kwargs:
+                    cbar_kwargs["label"] = "H-Alpha Intensity ({})".format(kwargs["c"].unit)
+                else:
+                    cbar_kwargs["label"] = "H-Alpha Intensity ({})".format(c_kwarg.unit)
+
 
             cb = plt.colorbar(sc, **cbar_kwargs)
 
@@ -577,7 +618,7 @@ class SkySurveyMixin(object):
             ew = self["INTEN"] / continuum
             if return_sigma:
                 if intensity_error is None: 
-                    ew_error = np.sqrt((self["ERROR"] / self["INTEN"])**2 + \
+                    ew_error = np.sqrt((self["ERROR"].data / self["INTEN"].data)**2 + \
                                         (continuum_error / continuum)**2) * ew
                 else:
                     ew_error = np.sqrt((intensity_error / self["INTEN"])**2 + \

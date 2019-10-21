@@ -4,6 +4,7 @@ import numpy as np
 from ..dataReduction import compute_transmissions
 from ..skySurvey import directory
 
+
 # Set up the random number generator
 np.random.seed(1234)
 
@@ -50,3 +51,42 @@ def test_type_errors():
 			assert False
 	else:
 		assert False
+
+def test_read_file_list():
+	"""
+	Check file_list format
+	"""
+	from ..skySurvey import SkySurvey
+	file_list = os.path.join(cal_directory, "ha/combo/g300_0-000814.fts")
+
+	data = SkySurvey(file_list = file_list)
+	data2 = SkySurvey(file_list = [file_list])
+	assert np.allclose(data["INTEN"], data2["INTEN"])
+
+def test_read_file_invalid():
+	"""
+	Rejects invalid file_list format
+	"""
+	from ..skySurvey import SkySurvey
+	file_list = 0
+	try:
+		SkySurvey(file_list = file_list)
+	except TypeError:
+		assert True
+	else:
+		assert False
+
+def test_no_extension():
+	"""
+	Rejects when extension not found
+	"""
+	from ..skySurvey import SkySurvey
+	file_list = os.path.join(cal_directory, "ha/combo/g300_0-000814.fts")
+	try:
+		SkySurvey(file_list = file_list, extension = "FAKE")
+	except ValueError:
+		assert True
+	else:
+		assert False
+
+

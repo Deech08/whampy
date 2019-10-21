@@ -11,6 +11,7 @@ from astropy.coordinates import Angle
 from extinction import fm07 as extinction_law
 from dustmaps.marshall import MarshallQuery
 from dustmaps.bayestar import BayestarQuery
+from dustmaps.bayestar import BayestarWebQuery
 
 from scipy.interpolate import interp1d
 from scipy import stats
@@ -139,7 +140,7 @@ def get_scale_height_data(data, track = None, deredden = False,
         coordinates = data.get_SkyCoord(distance = distances * u.kpc)
 
 
-        if deredden.__class__ is BayestarQuery:
+        if (deredden.__class__ is BayestarQuery) | (deredden.__class__ is BayestarWebQuery):
             Av_bayestar = 2.742 * deredden(coordinates)
             wave_ha = np.array([6562.8])
             A_V_to_A_ha = extinction_law(wave_ha, 1.)
