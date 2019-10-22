@@ -102,6 +102,21 @@ def test_vel_range_units():
     vel_range = [-20,20]*u.km/u.s
     return survey.intensity_map(vel_range = vel_range)
 
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
+def test_basic_smooth():
+    """
+    Basic intensity plot smooth
+    """
+    fig = survey.intensity_map(smooth = True)
+    return fig
+    
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance = 20)
+def test_basic_smooth_lrange():
+    """
+    Basic intensity plot smooth
+    """
+    fig = survey.intensity_map(smooth = True, lrange = [50,-50])
+    return fig
 
 
 
