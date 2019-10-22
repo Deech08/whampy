@@ -6,9 +6,16 @@ import matplotlib.pyplot as plt
 
 from matplotlib.colors import LogNorm
 # from mpl_toolkits.basemap import Basemap
-import cartopy.crs as ccrs
-from spectral_cube import SpectralCube
-
+try:
+    import cartopy.crs as ccrs
+except ModuleNotFoundError:
+    # Error handling
+    pass
+try:
+    from spectral_cube import SpectralCube
+except ModuleNotFoundError:
+    # Error handling
+    pass
 
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle

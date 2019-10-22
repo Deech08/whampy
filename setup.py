@@ -13,10 +13,10 @@ conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
 PACKAGENAME = metadata.get('package_name', 'whampy')
-DESCRIPTION = metadata.get('description', 'Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - SKy Survey')
+DESCRIPTION = metadata.get('description', 'Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - Sky Survey')
 AUTHOR = metadata.get('author', 'DK (Dhanesh Krishnarao)')
-AUTHOR_EMAIL = metadata.get('author_email', '')
-LICENSE = metadata.get('license', 'unknown')
+AUTHOR_EMAIL = metadata.get('author_email', 'krishnarao@astro.wisc.edu')
+LICENSE = metadata.get('license', 'BDS-3')
 URL = metadata.get('url', 'www.astro.wisc.edu/wham')
 __minimum_python_version__ = metadata.get("minimum_python_version", "3.6")
 
@@ -69,7 +69,7 @@ else:
 builtins._ASTROPY_PACKAGE_NAME_ = PACKAGENAME
 
 # VERSION should be PEP440 compatible (http://www.python.org/dev/peps/pep-0440)
-VERSION = metadata.get('version', '0.0.dev')
+VERSION = metadata.get('version', '0.1.0a5')
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in VERSION
@@ -98,7 +98,8 @@ package_info = get_package_info()
 
 # Add the project-global data
 package_info['package_data'].setdefault(PACKAGENAME, [])
-package_info['package_data'][PACKAGENAME].append('data/*')
+package_info['package_data'][PACKAGENAME].append('data/Reid16_SpiralArms/*')
+package_info['package_data'][PACKAGENAME].append('data/README.rst')
 
 # Define entry points for command-line scripts
 entry_points = {'console_scripts': []}

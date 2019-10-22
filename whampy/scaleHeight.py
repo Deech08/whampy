@@ -8,10 +8,18 @@ from scipy import interpolate
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle
 
-from extinction import fm07 as extinction_law
-from dustmaps.marshall import MarshallQuery
-from dustmaps.bayestar import BayestarQuery
-from dustmaps.bayestar import BayestarWebQuery
+try:
+    from extinction import fm07 as extinction_law
+except ModuleNotFoundError:
+    # Error handling
+    pass
+try:
+    from dustmaps.marshall import MarshallQuery
+    from dustmaps.bayestar import BayestarQuery
+    from dustmaps.bayestar import BayestarWebQuery
+except ModuleNotFoundError:
+    # Error handling
+    pass
 
 from scipy.interpolate import interp1d
 from scipy import stats

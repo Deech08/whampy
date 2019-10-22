@@ -7,7 +7,11 @@ import numpy as np
 
 from scipy.interpolate import interp1d
 
-from spectral_cube import SpectralCube
+try:
+    from spectral_cube import SpectralCube
+except ModuleNotFoundError:
+    # Error handling
+    pass
 
 
 import os.path 

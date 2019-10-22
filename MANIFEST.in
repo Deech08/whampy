@@ -3,8 +3,12 @@ include CHANGES.rst
 
 include ah_bootstrap.py
 include setup.cfg
-include whampy/data/*.fits
-include whampy/data/*.sav
+include whampy/data/Reid16_SpiralArms/*
+
+exclude whampy/data/wham-ss-161116.sav
+exclude whampy/data/sii_161221.sav
+exclude whampy/data/wham-ss-DR1-v161116-170912.fits
+exclude whampy/data/wham-ss-DR1-v161116-170912.sav
 
 
 recursive-include whampy *.pyx *.c *.pxd

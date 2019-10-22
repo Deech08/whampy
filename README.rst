@@ -29,6 +29,10 @@ It provides the following main features:
 Installation
 ------------
 
+You can install whampy using pip::
+
+	pip install whampy
+
 To install the latest developer version of whampy you can type::
 
     git clone https://github.com/Deech08/whampy.git

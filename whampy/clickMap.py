@@ -3,8 +3,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from spectral_cube import SpectralCube
-import cartopy.crs as ccrs
+try:
+    from spectral_cube import SpectralCube
+except ModuleNotFoundError:
+    # Error handling
+    pass
+try:
+    import cartopy.crs as ccrs
+except ModuleNotFoundError:
+    # Error handling
+    pass
 
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle
