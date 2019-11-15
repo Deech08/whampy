@@ -1,0 +1,23 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "https://orcid.org/0000-0002-7955-7359",
+      "@type": "Person",
+      "email": "krishnarao@astro.wisc.edu",
+      "name": "Dhanesh Krishnarao",
+      "affiliation": "University of Wisconsin-Madison"
+    }
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/Deech08/whampy",
+  "datePublished": "2019-12-01",
+  "dateModified": "2019-11-15",
+  "dateCreated": "2019-11-15",
+  "description": "Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - Sky Survey",
+  "keywords": "astronomy, interstellar medium, emission lines, position-position-velocity, kinematics",
+  "license": "BSD 3-Clause License",
+  "title": "whampy",
+  "version": "v1.0"
+}
