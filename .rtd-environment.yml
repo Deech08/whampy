@@ -11,8 +11,8 @@ dependencies:
     - matplotlib
     - cartopy
     - regions
-    - pandas
-    - seaborn
+    # - pandas
+    # - seaborn
     # - pyproj
     # - pyshp
     # - proj4
