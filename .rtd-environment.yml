@@ -13,13 +13,13 @@ dependencies:
     - regions
     - pandas
     - seaborn
-    - healpy
     # - pyproj
     # - pyshp
     # - proj4
     # - pip
     - pip:
         - spectral_cube
+	- healpy
         - dustmaps
         - extinction
     #     - git+https://github.com/matplotlib/basemap.git
