@@ -13,7 +13,6 @@ dependencies:
     - regions
     - pandas
     - seaborn
-    - pip
     - healpy
     # - pyproj
     # - pyshp
