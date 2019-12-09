@@ -185,12 +185,14 @@ class SkySurvey(SkySurveyMixin, Table):
                 if mode == 'local':
                     filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
                     try:
-                    	f = open(filename)
+                        f = open(filename)
                     except FileNotFoundError:
-                    	mode = 'remote'
-                    	filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
+                        print("Downloading survey to {}".format(filename))
+                        import urllib.request
+                        url = 'http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits'
+                        urllib.request.urlretrieve(url, filename)
                     finally:
-                    	f.close()
+                        f.close()
                 elif mode == 'remote':
                     filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
