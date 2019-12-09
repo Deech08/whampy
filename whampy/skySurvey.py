@@ -184,6 +184,13 @@ class SkySurvey(SkySurveyMixin, Table):
             if filename is None:
                 if mode == 'local':
                     filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
+                    try:
+                    	f = open(filename)
+                    except FileNotFoundError:
+                    	mode = 'remote'
+                    	filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
+                    finally:
+                    	f.close()
                 elif mode == 'remote':
                     filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
 
