@@ -99,6 +99,7 @@ package_info = get_package_info()
 # Add the project-global data
 package_info['package_data'].setdefault(PACKAGENAME, [])
 package_info['package_data'][PACKAGENAME].append('data/Reid16_SpiralArms/*')
+package_info['package_data'][PACKAGENAME].append('data/wham-ss-DR1-v161116-170912.fits')
 package_info['package_data'][PACKAGENAME].append('data/README.rst')
 
 # Define entry points for command-line scripts
