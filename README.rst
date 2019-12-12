@@ -15,11 +15,9 @@ Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Ma
 	:target: https://whampy.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
 
-`WHAM <http://www.astro.wisc.edu/wham-site/>`_
-
 
 The `whampy` package provides an easy way to load, view, and do science with the 
-Wisconsin H-Alpha Mapper (WHAM) Sky Survey. 
+Wisconsin H-Alpha Mapper (`WHAM <http://www.astro.wisc.edu/wham-site/>`_) Sky Survey. 
 It provides the following main features:
 
 -The ability to load the Sky Survey Data from the FITS table
