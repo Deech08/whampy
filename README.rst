@@ -15,7 +15,7 @@ Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Ma
 	:target: https://whampy.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
 
-`WHAM <www.astro.wisc.edu/wham>`_
+`WHAM <http://www.astro.wisc.edu/wham-site/>`_
 
 
 The `whampy` package provides an easy way to load, view, and do science with the 
@@ -59,6 +59,12 @@ Here is a simple script demonstrating the modspectra package:
 	>>> moment_0, err_0 = survey.moment(order = 0, return_sigma = True)
 	>>> moment_1, err_1 = survey.moment(order = 1, return_sigma = True)
 	>>> moment_2, err_2 = survey.moment(order = 2, return_sigma = True)
+
+Full Documentation
+------------------
+
+Complete documentation of the package and its funcationality can be found at the link below:
+`whampy Documentation <https://whampy.readthedocs.io/en/latest/>`_
 
 License
 -------
