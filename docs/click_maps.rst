@@ -16,7 +16,7 @@ and have a spectrum plotted from the nearest WHAM pointing using the `~whampy.wh
 
 
 `~whampy.whampyTableMixin.click_map` will accept and pass keywords to `~whampy.whampyTableMixin.intensity_map`. You can 
-also pass in your own set of figure and axes instances to customize the orientation, shape, and size of axes::
+also pass in your own set of figure and axes instances to customize the orientation, shape, and size of axes. The example below uses the optional dependency `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_::
 
 	>>> import cartopy.crs as ccrs
 	>>> fig = plt.figure()
@@ -34,7 +34,7 @@ Making Interactive Maps that overplot Additional Spectra
 You can also make these interactive maps and have clicks additionally plot another spectra from a different source.
 This additional data can be from a FITS Data cube or another SkySurvey object for other wavelength WHAM observations.
 
-This feature uses the `spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>` package to handle FITS data cubes::
+This feature uses the optional dependency `spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>` package to handle FITS data cubes::
 
 	>>> fits_cube_path = "hi_data_cube.fits"
 	>>> fig = plt.figure()

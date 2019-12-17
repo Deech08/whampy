@@ -64,6 +64,11 @@ Full Documentation
 Complete documentation of the package and its funcationality can be found at the link below:
 `whampy Documentation <https://whampy.readthedocs.io/en/latest/>`_
 
+Contributing
+------------
+
+Contributions, feedback, and bug reports are welcome from all users of whampy! If you discover a bug, or have a request for a new feature, please open an issue on this repository using one of the templates. If you would like to make a more direct contribution to the code, please submit a pull request to this repository. This package relies upon the work of the astropy team, and we also ask that all contributions follow the `Astropy Community Code of Conduct <https://www.astropy.org/about.html#codeofconduct>`_. 
+
 License
 -------
 

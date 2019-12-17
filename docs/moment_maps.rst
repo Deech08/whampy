@@ -5,6 +5,8 @@ The :class:`~whampy.skySurvey.SkySurvey` class has a method `~whampy.whampyTable
 moment maps with the survey::
 
     >>> from whampy.skySurvey import SkySurvey
+    >>> import matplotlib.pyplot as plt
+    >>> import cartopy.crs as ccrs
 
     >>> # Load Survey
     >>> survey = SkySurvey()
