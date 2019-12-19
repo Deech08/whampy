@@ -53,6 +53,7 @@ Optional Dependencies
 * `spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>`_
 
 The following two packages can be useful if working with the spectral-cube package along with whampy.
+
 * `pyregion <https://pyregion.readthedocs.io/en/latest/>`_
 * `Regions <https://astropy-regions.readthedocs.io/en/latest>`_
 
