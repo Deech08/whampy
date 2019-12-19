@@ -20,9 +20,9 @@ The `whampy` package provides an easy way to load, view, and do science with the
 Wisconsin H-Alpha Mapper (`WHAM <http://www.astro.wisc.edu/wham-site/>`_) Sky Survey. 
 It provides the following main features:
 
--The ability to load the Sky Survey Data from the FITS table
--The ability to quickly plot sections of the sky with beam maps
--The ability to calculate moment maps and arithmetic using the data
+* The ability to load the Sky Survey Data from the FITS table
+* The ability to quickly plot sections of the sky with beam maps
+* The ability to calculate moment maps and arithmetic using the data
 
 Installation
 ------------
@@ -49,12 +49,12 @@ Optional Dependencies
 
 `whampy` contains some features that require additonal python packages that are included by default. If you would like to use some of these extra features, you will need to separately install those packages as well. These packages, with links to their documentation and installation instructions, are listed below.
 
-`cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_0.17.0 or later
-`spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>`_ >=0.4.4
+* `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_
+* `spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>`_
 
 The following two packages can be useful if working with the spectral-cube package along with whampy.
-`pyregion <https://pyregion.readthedocs.io/en/latest/>`_>=2.0
-`Regions <https://astropy-regions.readthedocs.io/en/latest>`_ >=0.3dev
+* `pyregion <https://pyregion.readthedocs.io/en/latest/>`_
+* `Regions <https://astropy-regions.readthedocs.io/en/latest>`_
 
 
 Quick Start
