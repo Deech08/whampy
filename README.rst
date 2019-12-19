@@ -44,6 +44,19 @@ You can also install the latest developer version in a single line with pip::
     pip install git+https://github.com/Deech08/whampy.git
 
 
+Optional Dependencies
+---------------------
+
+`whampy` contains some features that require additonal python packages that are included by default. If you would like to use some of these extra features, you will need to separately install those packages as well. These packages, with links to their documentation and installation instructions, are listed below.
+
+`cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_0.17.0 or later
+`spectral cube <https://spectral-cube.readthedocs.io/en/latest/#>`_ >=0.4.4
+
+The following two packages can be useful if working with the spectral-cube package along with whampy.
+`pyregion <https://pyregion.readthedocs.io/en/latest/>`_>=2.0
+`Regions <https://astropy-regions.readthedocs.io/en/latest>`_ >=0.3dev
+
+
 Quick Start
 -----------
 

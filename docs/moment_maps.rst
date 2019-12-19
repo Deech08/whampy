@@ -15,12 +15,12 @@ moment maps with the survey::
     >>> mean_vel = survey.moment(order = 1)
     >>> # Sky Map
     >>> fig = plt.figure()
-	>>> ax = fig.add_subplot(111, projection = ccrs.Mollweide(central_longitude=0))
+    >>> ax = fig.add_subplot(111, projection = ccrs.Mollweide(central_longitude=0))
 
-	>>> fig = survey.intensity_map(ax = ax, c = mean_vel, vmin = -75, vmax = 75, 
-                     			   norm = None, cmap = "RdBu_r", colorbar = True, 
-                     			   cbar_kwargs={"orientation":"horizontal", 
-                                  				"label":"Mean Velocity (km/s)"})
+    >>> fig = survey.intensity_map(ax = ax, c = mean_vel, vmin = -75, vmax = 75, 
+                                   norm = None, cmap = "RdBu_r", colorbar = True, 
+                                   cbar_kwargs={"orientation":"horizontal", 
+                                                "label":"Mean Velocity (km/s)"})
 
 .. image:: images/moment1_map.png
    :width: 600
