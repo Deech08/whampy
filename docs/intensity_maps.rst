@@ -22,8 +22,8 @@ plot these points onto different projections or over other data::
     >>> ax = fig.add_subplot(111)
 
     >>> fig = survey.intensity_map(ax = ax, fig = fig, 
-                                colorbar = True, 
-                                cbar_kwargs = {"orientation":"horizontal"})
+    ...                         colorbar = True, 
+    ...                         cbar_kwargs = {"orientation":"horizontal"})
 
 .. image:: images/own_axes_map.png
    :width: 600
@@ -40,17 +40,17 @@ by some factor using the `s_factor` keywword::
     >>> lrange = [50,-50] # Longitude Range
     >>> brange = [-20,20] # Latitude Range
     >>> fig = survey.intensity_map(ax = ax, lrange = lrange, brange = brange, 
-                                    transform = ccrs.PlateCarree(), 
-                                    colorbar = True, 
-                                    cbar_kwargs = {"orientation":"horizontal"})
+    ...                             transform = ccrs.PlateCarree(), 
+    ...                             colorbar = True, 
+    ...                             cbar_kwargs = {"orientation":"horizontal"})
 
 .. image:: images/stereo_map.png
    :width: 600
 
    >>> fig = survey.intensity_map(ax = ax, lrange = lrange, brange = brange, 
-                                    transform = ccrs.PlateCarree(), s_factor = 2
-                                    colorbar = True, 
-                                    cbar_kwargs = {"orientation":"horizontal"})
+   ...                              transform = ccrs.PlateCarree(), s_factor = 2
+   ...                              colorbar = True, 
+   ...                              cbar_kwargs = {"orientation":"horizontal"})
 
 .. image:: images/stereo_map_s_factor_2.png
    :width: 600

@@ -17,7 +17,7 @@ sky section maps with the survey using tracks in longitude-velocity space.
     >>> # Sky Map
 
 	>>> fig = perseus_arm.intensity_map(colorbar = True, s_factor = 2,
-                     			   cbar_kwargs={"orientation":"horizontal"})
+    ...              			   cbar_kwargs={"orientation":"horizontal"})
 
 .. image:: images/perseus_arm_map.png
    :width: 600
