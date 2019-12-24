@@ -1,6 +1,9 @@
 Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - Sky Survey
 -------------------------------------------------------------------------------------------------
 
+.. image:: https://joss.theoj.org/papers/10.21105/joss.01940/status.svg
+   :target: https://doi.org/10.21105/joss.01940
+
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
