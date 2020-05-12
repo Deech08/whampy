@@ -265,6 +265,58 @@ sii_order_dict = {
     "intercept":np.array([47.2, 78.446, 494.030])
 }
 
+# WHAM Instrument Profiles
+IP_TH_AR = {
+    "left":{#Blue
+    "mean":[-0.1915317000, 0.0623242000, 0.1292077000], 
+    "FWHM":[9.6666269000, 32.0365219000, 16.1042328000], 
+    "amp":[0.0285350000, 0.0070548000, 0.0271723000]
+    }, 
+    "center":{
+    "mean":[0.2976723000, -0.0952606000, -0.2024040000], 
+    "FWHM":[18.5535583000, 37.1741791000, 9.9602461000], 
+    "amp":[0.0201603000, 0.0045628000, 0.0397354000]
+    }, 
+    "right":{#Red
+    "mean":[-0.5142975000, 0.3779373000, 0.1363449000], 
+    "FWHM":[10.2697849000, 41.3955574000, 18.1468506000], 
+    "amp":[0.0321637000, 0.0054176000, 0.0212081000]
+    }
+}
+
+def cw(std_component, FWHM_IPs):
+    FWHM_component = std_component * (2 * np.sqrt(2 * np.log(2)))
+    return [np.sqrt(FWHM_component**2 + FWHM_IP**2) 
+            for FWHM_IP in FWHM_IPs]
+
+def ch(amp_component, std_component, amp_IPs, FWHM_IPs):
+    convolved_widths = cw(std_component, FWHM_IPs)
+    area_component = amp_component * np.sqrt(2 * np.pi) * std_component
+    return [area_component * h_ip * w_ip/convoved_width 
+            for (h_ip, w_ip, convoved_width) in zip(amp_IPs, FWHM_IPs, convolved_widths)]
+
+def c_mean(mean_component, mean_IPs):
+    return [mean_component + mean_IP for mean_IP in mean_IPs]
+
+def c_component(amp_component, mean_component, std_component, 
+    IP = "center"):
+    amp_IPs = IP_TH_AR[IP]["amp"]
+    mean_IPs = IP_TH_AR[IP]["mean"]
+    FWHM_IPs = IP_TH_AR[IP]["FWHM"]
+
+    std_convolved = cw(std_component, FWHM_IPs) / (2 * np.sqrt(2 * np.log(2)))
+    amp_convolved = ch(amp_component, std_component, amp_IPs, FWHM_IPs)
+    mean_convolved = c_mean(mean_component, mean_IPs)
+    
+    return Gaussian1D(amp_convolved[0], mean_convolved[0], std_convolved[0]) + \
+            Gaussian1D(amp_convolved[1], mean_convolved[1], std_convolved[1]) + \
+            Gaussian1D(amp_convolved[2], mean_convolved[2], std_convolved[2])
+    
+
+
+
+
+
 def raw_to_geo(row):
     """
     Shift from raw velocity to GEO frame using Pressures and Filter
@@ -502,7 +554,8 @@ def all_shift_0_point(self, max_ind = 10):
 
 def fit_geocoronal(target_row, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None, 
+                    IP = "center", **kwargs):
     """
     Fits geocoronal bright line to spectrum for future subtraction
 
@@ -514,6 +567,8 @@ def fit_geocoronal(target_row,
         Name of data column, default of "DATA"
     velocity_column: 'str', optional, must be keyword
         Name of velocity column, default of "VELOCITY"
+    IP: `str`, optional, must be keyword
+        which Th-Ar instrument profile to use
     **kwargs: dict
         keywords passed to Model.fit()
 
@@ -526,7 +581,7 @@ def fit_geocoronal(target_row,
         data_column = "DATA"
 
     def bright_atm(x, baseline, amp, mean, std):
-        g = Gaussian1D(amp, mean, std)
+        g = c_component(amp, mean, std, IP = IP)
         
         y = np.zeros_like(x)
         y+= baseline
@@ -552,7 +607,9 @@ def fit_geocoronal(target_row,
 
 def fit_oxy_ha(target_row, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None, 
+                    IP = "center",
+                    **kwargs):
     """
     Fits oxygen bright line to spectrum for future subtraction
 
@@ -576,7 +633,7 @@ def fit_oxy_ha(target_row,
         data_column = "DATA"
 
     def bright_atm(x, baseline, amp, mean, std):
-        g = Gaussian1D(amp, mean, std)
+        g = c_component(amp, mean, std, IP = IP)
         
         y = np.zeros_like(x)
         y+= baseline
@@ -602,7 +659,9 @@ def fit_oxy_ha(target_row,
 
 def fit_oxy_nii(target_row, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None, 
+                    IP = "center",
+                    **kwargs):
     """
     Fits oxygen bright line to spectrum for future subtraction
 
@@ -626,7 +685,7 @@ def fit_oxy_nii(target_row,
         data_column = "DATA"
 
     def bright_atm(x, baseline, amp, mean, std):
-        g = Gaussian1D(amp, mean, std)
+        g = c_component(amp, mean, std, IP = IP)
         
         y = np.zeros_like(x)
         y+= baseline
@@ -654,7 +713,9 @@ def fit_oxy_nii(target_row,
 
 def fit_double_oxy_nii(target_row, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None, 
+                    IP = "center",
+                    **kwargs):
     """
     Fits oxygen bright lines to spectrum for future subtraction
 
@@ -678,7 +739,7 @@ def fit_double_oxy_nii(target_row,
         data_column = "DATA"
 
     def bright_atm(x, baseline, amp, mean, std):
-        g = Gaussian1D(amp, mean, std)
+        g = c_component(amp, mean, std, IP = IP)
         
         y = np.zeros_like(x)
         y+= baseline
@@ -688,10 +749,10 @@ def fit_double_oxy_nii(target_row,
 
     def double_bright_atm(x, baseline, amp, mean, std, 
         fainter_factor, fainter_shift, fainter_std):
-        g = Gaussian1D(amp, mean, std)
-        g2 = Gaussian1D(amp/fainter_factor, 
+        g = c_component(amp, mean, std, IP = IP)
+        g2 = c_component(amp/fainter_factor, 
             mean + fainter_shift, 
-            fainter_std)
+            fainter_std, IP = IP)
         y = np.zeros_like(x)
         y+= baseline
         y+= g(x)
@@ -731,7 +792,8 @@ def fit_double_oxy_nii(target_row,
 
 def fit_all_geocoronals(target_data, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None, 
+                    **kwargs):
     """
     Fits geocoronal bright line to spectra for future subtraction
 
@@ -757,13 +819,27 @@ def fit_all_geocoronals(target_data,
     to_fit_geo = [(np.nanmax(vels) > 5) & (np.nanmin(vels) < -10) 
                     for vels in target_data[velocity_column]]
 
+    # Determine which IP to use:
+    left_IP = [np.argmin(np.abs(vels - (-2.33))) < 34 
+                for vels in target_data[velocity_column]]
+    right_IP = [np.argmin(np.abs(vels - (-2.33))) > 65 
+                for vels in target_data[velocity_column]]
+
     geo_results = []
 
-    for mask,row in zip(to_fit_geo,target_data):
+    for ell,(mask,row) in enumerate(zip(to_fit_geo,target_data)):
         if mask:
+            if left_IP[ell]:
+                IP = "left"
+            elif right_IP[ell]:
+                IP = "right"
+            else:
+                IP = "center"
+
             geo_results.append(fit_geocoronal(row, 
                                             velocity_column = velocity_column, 
                                             data_column = data_column, 
+                                            IP = IP,
                                             **kwargs))
         else:
             geo_results.append(Mock())
@@ -772,7 +848,8 @@ def fit_all_geocoronals(target_data,
 
 def fit_all_oxy_ha(target_data, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None, 
+                    **kwargs):
     """
     Fits oxygen bright line to spectra for future subtraction
 
@@ -798,13 +875,26 @@ def fit_all_oxy_ha(target_data,
     to_fit_geo = [(np.nanmax(vels) > 275) & (np.nanmin(vels) < 265) 
                     for vels in target_data[velocity_column]]
 
+    # Determine which IP to use:
+    left_IP = [np.argmin(np.abs(vels - (272.44))) < 34 
+                for vels in target_data[velocity_column]]
+    right_IP = [np.argmin(np.abs(vels - (272.44))) > 65 
+                for vels in target_data[velocity_column]]
+
     geo_results = []
 
-    for mask,row in zip(to_fit_geo,target_data):
+    for ell,(mask,row) in enumerate(zip(to_fit_geo,target_data)):
         if mask:
+            if left_IP[ell]:
+                IP = "left"
+            elif right_IP[ell]:
+                IP = "right"
+            else:
+                IP = "center"
             geo_results.append(fit_oxy_ha(row, 
                                             velocity_column = velocity_column, 
                                             data_column = data_column, 
+                                            IP = IP,
                                             **kwargs))
         else:
             geo_results.append(Mock())
@@ -813,7 +903,8 @@ def fit_all_oxy_ha(target_data,
 
 def fit_all_oxy_nii(target_data, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None,
+                    **kwargs):
     """
     Fits oxygen bright line to spectra for future subtraction
 
@@ -839,13 +930,26 @@ def fit_all_oxy_nii(target_data,
     to_fit_geo = [(np.nanmax(vels) > -260) & (np.nanmin(vels) < -290) 
                     for vels in target_data[velocity_column]]
 
+    # Determine which IP to use:
+    left_IP = [np.argmin(np.abs(vels - (-281.3))) < 34 
+                for vels in target_data[velocity_column]]
+    right_IP = [np.argmin(np.abs(vels - (-281.3))) > 65 
+                for vels in target_data[velocity_column]]
+
     geo_results = []
 
-    for mask,row in zip(to_fit_geo,target_data):
+    for ell,(mask,row) in enumerate(zip(to_fit_geo,target_data)):
         if mask:
+            if left_IP[ell]:
+                IP = "left"
+            elif right_IP[ell]:
+                IP = "right"
+            else:
+                IP = "center"
             geo_results.append(fit_oxy_nii(row, 
                                             velocity_column = velocity_column, 
                                             data_column = data_column, 
+                                            IP  = IP,
                                             **kwargs))
         else:
             geo_results.append(Mock())
@@ -854,7 +958,8 @@ def fit_all_oxy_nii(target_data,
 
 def fit_all_double_oxy_nii(target_data, 
                     velocity_column = None, 
-                    data_column = None, **kwargs):
+                    data_column = None,
+                    **kwargs):
     """
     Fits oxygen bright line to spectra for future subtraction
 
@@ -885,19 +990,33 @@ def fit_all_double_oxy_nii(target_data,
 
     to_fit_all = np.logical_or(fit_double, to_fit_geo)
 
+    # Determine which IP to use:
+    left_IP = [np.argmin(np.abs(vels - (-281.3))) < 34 
+                for vels in target_data[velocity_column]]
+    right_IP = [np.argmin(np.abs(vels - (-281.3))) > 65 
+                for vels in target_data[velocity_column]]
+
     geo_results = []
 
     for ell,(mask,row) in enumerate(zip(to_fit_all,target_data)):
         if mask:
+            if left_IP[ell]:
+                IP = "left"
+            elif right_IP[ell]:
+                IP = "right"
+            else:
+                IP = "center"
             if fit_double[ell]:
                 geo_results.append(fit_double_oxy_nii(row, 
                                                 velocity_column = velocity_column, 
                                                 data_column = data_column, 
+                                                IP = IP,
                                                 **kwargs))
             else:
                 geo_results.append(fit_oxy_nii(row, 
                                                 velocity_column = velocity_column, 
                                                 data_column = data_column, 
+                                                IP = IP,
                                                 **kwargs))
         
         else:
@@ -910,7 +1029,7 @@ def set_geocentric_zero_from_geocoronal(target_data, geo_results = None,
                                         velocity_column = None, 
                                         data_column = None,
                                         new_velocity_column = None, 
-                                        subtract = True, 
+                                        subtract = True,
                                         **kwargs):
 
     """
@@ -977,7 +1096,8 @@ def set_geocentric_zero_from_oxy_nii(target_data, geo_results = None,
                                         data_column = None,
                                         variance_column = None,
                                         new_velocity_column = None, 
-                                        subtract = True, use_quadratic_fit = False,
+                                        subtract = True,
+                                        use_quadratic_fit = False,
                                         **kwargs):
 
     """
@@ -1470,7 +1590,7 @@ def spectrum_model(target_row, atm_template,
         return np.zeros_like(x) + atm * atm_masked_data
     
     def gaussian_model(x, amp, mean, std):
-        g = Gaussian1D(amp, mean, std)
+        g = c_component(amp, mean, std)
         return g(x)
     
     fitting_model = Model(baseline_model) + Model(atm_model)
