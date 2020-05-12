@@ -8,6 +8,7 @@ from astropy.table import Table
 
 def stack_spectra_bootstrap(survey, 
                               data_column = None, 
+                              velocity_column = None,
                               variance_column = None, 
                               velocity = None, 
                               n_boot = None, 
@@ -23,6 +24,8 @@ def stack_spectra_bootstrap(survey,
         input skySurvey
     data_column: 'str', optional, must be keyword
         Name of data column, default of "DATA"
+    velocity_column: 'str', optional, must be keyword
+        Name of velocity column, default of "VELOCITY"
     variance_column: 'str', optional, must be keyword
         Name od variance column, defaut of "VARIANCE"
     velocity: 'np.array, list', optional, must be keyword
@@ -45,8 +48,10 @@ def stack_spectra_bootstrap(survey,
         data_column = "DATA"
     if variance_column is None:
         variance_column = "VARIANCE"
+    if velocity_column is None:
+        velocity_column = "VELOCITY"
     if velocity is None:
-        velocity = survey[0]["VELOCITY"]
+        velocity = survey[0][velocity_column]
     if n_boot is None:
         n_boot = 10000
     if ci is None:
@@ -105,6 +110,7 @@ def combine_velocity_windows_bootstrap(obs_list,
                                        survey_spectra = None,
                                        exp_times = None, 
                               data_column = None, 
+                              velocity_column = None,
                               variance_column = None, 
                               velocity = None, 
                               n_boot = None, 
@@ -128,6 +134,8 @@ def combine_velocity_windows_bootstrap(obs_list,
         NOT YET IMPLEMENTED
     data_column: 'str', optional, must be keyword
         Name of data column, default of "DATA"
+    velocity_column: 'str', optional, must be keyword
+        Name of velocity column, default of "VELOCITY"
     variance_column: 'str', optional, must be keyword
         Name od variance column, defaut of "VARIANCE"
     velocity: 'np.array, list', optional, must be keyword
@@ -157,6 +165,8 @@ def combine_velocity_windows_bootstrap(obs_list,
         data_column = "DATA"
     if variance_column is None:
         variance_column = "VARIANCE"
+    if velocity_column is None:
+        velocity_column = "VELOCITY"
     if n_boot is None:
         n_boot = 10000
     if ci is None:
@@ -175,11 +185,11 @@ def combine_velocity_windows_bootstrap(obs_list,
     # Determine highest and lowest velocities if needed
     if velocity is None:
         if vmin is None:
-            all_vmins = [np.nanmin(obs["VELOCITY"]) for obs in obs_list]
+            all_vmins = [np.nanmin(obs[velocity_column]) for obs in obs_list]
             vmin = np.nanmin(all_vmins)
 
         if vmax is None:
-            all_vmaxs = [np.nanmax(obs["VELOCITY"]) for obs in obs_list]
+            all_vmaxs = [np.nanmax(obs[velocity_column]) for obs in obs_list]
             vmax = np.nanmax(all_vmaxs)
 
         # Set Velocity Window
@@ -195,16 +205,16 @@ def combine_velocity_windows_bootstrap(obs_list,
     for obs in obs_list:
         data_this_row = []
         for row in obs:
-            data_interpolator = interp1d(row["VELOCITY"], row[data_column], 
+            data_interpolator = interp1d(row[velocity_column], row[data_column], 
                                          bounds_error = False, fill_value = np.nan)
             data_this_row.append([data_interpolator(velocity)])
         interp_data.append(np.vstack(data_this_row))
         
     if survey_spectra is not None:
-        survey_data_interpolator = interp1d(survey_spectra["VELOCITY"], survey_spectra[data_column], 
+        survey_data_interpolator = interp1d(survey_spectra[velocity_column], survey_spectra[data_column], 
                                             bounds_error = False, fill_value = np.nan)
         survey_data = survey_data_interpolator(velocity)
-        survey_variance_interpolator = interp1d(survey_spectra["VELOCITY"], survey_spectra[variance_column], 
+        survey_variance_interpolator = interp1d(survey_spectra[velocity_column], survey_spectra[variance_column], 
                                             bounds_error = False, fill_value = np.nan)
         survey_variance = survey_variance_interpolator(velocity)
         

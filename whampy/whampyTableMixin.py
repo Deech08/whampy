@@ -178,6 +178,8 @@ class SkySurveyMixin(object):
         vel_masked = np.ma.masked_array(self["VELOCITY"], mask = nan_msk)
         var_masked = np.ma.masked_array(self["VARIANCE"], mask = nan_msk)
 
+
+        # Caution - Errors not to be trusted...
         # Zeroth Order Moment
         moment_0 = np.trapz(data_masked, x = vel_masked, 
             axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
@@ -186,9 +188,13 @@ class SkySurveyMixin(object):
         if order > 0:
             moment_1 = np.trapz(data_masked * vel_masked, x = vel_masked, 
                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / moment_0
-            err_1_subover_mom_1 = np.trapz(np.sqrt(var_masked) * vel_masked**2, x = vel_masked, 
-                            axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
-            err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
+            err_num = np.trapz(np.sqrt(var_masked) * vel_masked, x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2
+            err_denom = err_0
+
+            error_1 = np.sqrt((err_num/(moment_1*moment_0))**2 + (err_denom/moment_0)**2)*np.abs(moment_1)
+            # err_1_subover_mom_1 = np.trapz(np.sqrt(var_masked) * vel_masked**2, x = vel_masked, 
+            #                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
+            # err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
             if order > 1:
                 moment_2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2, 
                     x = vel_masked, 
@@ -644,6 +650,274 @@ class SkySurveyMixin(object):
             return ew, ew_error
         else:
             return ew
+
+
+
+
+    
+
+
+    def get_quadratic_centroid(self, data_column = None, velocity_column  = None,
+        vmin = None, vmax = None, 
+        smooth = "hanning", window_len = 11, variance_column = None, uncertainty = None):
+
+        """
+
+        Use quadratic centroid method to find centroid and errors
+        data_column: `str`, optional, must be keyword
+            name of data column to use
+        velocity_column: 'str', optional, must be keyword
+            name of velocity column to use
+        vmin: `number`, `u.Quantity`, optional, must be keyword
+            min velocity to consider
+        vmax: `number`, `u.Quantity`, optional, must be keyword
+            max velocity to consider
+        smooth: `str`, optional, must be keyword
+            smoothing method to use
+            if None, doesn't smooth
+        window_len: `number`, optional, must be keyword
+            size of smoothing window
+        variance_column: `str`, optional, must be keyword
+            name of variacne column to use
+        uncertainty: 'number', `list-like`, optional, must be keyword
+            if provided, uses this instead of variance column provided
+
+        """
+
+        if data_column is None:
+            data_column = "DATA"
+        if velocity_column is None:
+            velocity_column = "VELOCITY"
+        if variance_column is None:
+            variance_column = "VARIANCE"
+
+        if vmin is not None:
+            if not hasattr(vmin, "unit"):
+                logging.warning("No unit provided for vmin, assuming km/s")
+                vmin *= u.km/u.s
+        if vmax is not None:
+            if not hasattr(vmax, "unit"):
+                logging.warning("No unit provided for vmax, assuming km/s")
+                vmax *= u.km/u.s
+
+        def smooth_spectrum(data,
+        window_len=11,
+        window='hanning'):
+            """
+            NOTE: From scipy cookbook page
+
+            smooth the data using a window with requested size.
+            
+            This method is based on the convolution of a scaled window with the signal.
+            The signal is prepared by introducing reflected copies of the signal 
+            (with the window size) in both ends so that transient parts are minimized
+            in the begining and end part of the output signal.
+            
+            input:
+                data_column: the input signal column name
+                window_len: the dimension of the smoothing window; should be an odd integer
+                window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+                    flat window will produce a moving average smoothing.
+
+            output:
+                the smoothed signal
+                
+            example:
+
+            t=linspace(-2,2,0.1)
+            x=sin(t)+randn(len(t))*0.1
+            y=smooth(x)
+            
+            see also: 
+            
+            numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
+            scipy.signal.lfilter
+         
+            TODO: the window parameter could be the window itself if an array instead of a string
+            NOTE: length(output) != length(input), to correct this: return y[(window_len/2-1):-(window_len/2)] instead of just y.
+            """
+
+
+
+            x = data
+
+            if x.ndim != 1:
+                raise ValueError("smooth only accepts 1 dimension arrays.")
+
+            if x.size < window_len:
+                raise ValueError("Input vector needs to be bigger than window size.")
+
+
+            if window_len<3:
+                return x
+
+
+            if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+                raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
+
+
+            s=np.r_[x[window_len-1:0:-1],x,x[-2:-window_len-1:-1]]
+            if window == 'flat': #moving average
+                w=np.ones(window_len,'d')
+            else:
+                w=eval('np.'+window+'(window_len)')
+
+            y=np.convolve(w/w.sum(),s,mode='valid')
+            return y[int((window_len-1)/2):-int((window_len-1)/2)]
+
+        nan_mask = np.isnan(self[data_column])
+        nan_mask |= np.isnan(self[variance_column])
+        nan_mask |= np.isnan(self[velocity_column])
+        data = np.ma.masked_array(data = self[data_column], mask = nan_mask)
+        if smooth is None:
+            data = data
+        else:
+            try:
+                data = np.array([smooth_spectrum(data[ell], 
+                                                    window_len = window_len, window = smooth) 
+                                        for ell in range(len(self))])
+            except ValueError:
+                logging.warning("Invalid smoothing window - using raw data")
+ 
+
+        if uncertainty is None:
+            uncertainty = np.ma.masked_array(data = self[variance_column], mask = nan_mask)
+
+        def quadratic(data, uncertainty=None, axis=0, x0=0.0, dx=1.0, linewidth=None):
+            """
+            NOTE: From richteague/bettermoments
+            DOI: 10.5281/zenodo.1419754
+
+            Compute the quadratic estimate of the centroid of a line in a data cube.
+            The use case that we expect is a data cube with spatiotemporal coordinates
+            in all but one dimension. The other dimension (given by the ``axis``
+            parameter) will generally be wavelength, frequency, or velocity. This
+            function estimates the centroid of the *brightest* line along the ``axis''
+            dimension, in each spatiotemporal pixel.
+            Following Vakili & Hogg we allow for the option for the data to be smoothed
+            prior to the parabolic fitting. The recommended kernel is a Gaussian of
+            comparable width to the line. However, for low noise data, this is not
+            always necessary.
+            Args:
+                data (ndarray): The data cube as an array with at least one dimension.
+                uncertainty (Optional[ndarray or float]): The uncertainty on the
+                    intensities given by ``data``. If this is a scalar, all
+                    uncertainties are assumed to be the same. If this is an array, it
+                    must have the same shape as ``data'' and give the uncertainty on
+                    each intensity. If not provided, the uncertainty on the centroid
+                    will not be estimated.
+                axis (Optional[int]): The axis along which the centroid should be
+                    estimated. By default this will be the zeroth axis.
+                x0 (Optional[float]): The wavelength/frequency/velocity/etc. value for
+                    the zeroth pixel in the ``axis'' dimension.
+                dx (Optional[float]): The pixel scale of the ``axis'' dimension.
+            Returns:
+                x_max (ndarray): The centroid of the brightest line along the ``axis''
+                    dimension in each pixel.
+                x_max_sig (ndarray or None): The uncertainty on ``x_max''. If
+                    ``uncertainty'' was not provided, this will be ``None''.
+                y_max (ndarray): The predicted value of the intensity at maximum.
+                y_max_sig (ndarray or None): The uncertainty on ``y_max''. If
+                    ``uncertainty'' was not provided, this will be ``None''.
+            """
+            # Cast the data to a numpy array
+
+            data = np.moveaxis(np.atleast_1d(data), axis, 0)
+            shape = data.shape[1:]
+            data = np.reshape(data, (len(data), -1))
+
+            # Find the maximum velocity pixel in each spatial pixel
+            idx = np.argmax(data, axis=0)
+
+            # Deal with edge effects by keeping track of which pixels are right on the
+            # edge of the range
+            idx_bottom = idx == 0
+            idx_top = idx == len(data) - 1
+            idx = np.ma.clip(idx, 1, len(data)-2)
+
+            # Extract the maximum and neighboring pixels
+            f_minus = data[(idx-1, range(data.shape[1]))]
+            f_max = data[(idx, range(data.shape[1]))]
+            f_plus = data[(idx+1, range(data.shape[1]))]
+
+            # Work out the polynomial coefficients
+            a0 = 13. * f_max / 12. - (f_plus + f_minus) / 24.
+            a1 = 0.5 * (f_plus - f_minus)
+            a2 = 0.5 * (f_plus + f_minus - 2*f_max)
+
+            # Compute the maximum of the quadratic
+            x_max = idx - 0.5 * a1 / a2
+            y_max = a0 - 0.25 * a1**2 / a2
+
+            # Set sensible defaults for the edge cases
+            if len(data.shape) > 1:
+                x_max[idx_bottom] = 0
+                x_max[idx_top] = len(data) - 1
+                y_max[idx_bottom] = f_minus[idx_bottom]
+                y_max[idx_top] = f_plus[idx_top]
+            else:
+                if idx_bottom:
+                    x_max = 0
+                    y_max = f_minus
+                elif idx_top:
+                    x_max = len(data) - 1
+                    y_max = f_plus
+
+            # If no uncertainty was provided, end now
+            if uncertainty is None:
+                return (
+                    np.reshape(x0 + dx * x_max, shape), None,
+                    np.reshape(y_max, shape), None,
+                    np.reshape(2. * a2, shape), None)
+
+            # Compute the uncertainty
+            try:
+                uncertainty = float(uncertainty) + np.zeros_like(data)
+            except TypeError:
+                # An array of errors was provided
+                uncertainty = np.moveaxis(np.atleast_1d(uncertainty), axis, 0)
+                if uncertainty.shape[0] != data.shape[0] or \
+                        shape != uncertainty.shape[1:]:
+                    raise ValueError("the data and uncertainty must have the same "
+                                     "shape")
+                uncertainty = np.reshape(uncertainty, (len(uncertainty), -1))
+
+            df_minus = uncertainty[(idx-1, range(uncertainty.shape[1]))]**2
+            df_max = uncertainty[(idx, range(uncertainty.shape[1]))]**2
+            df_plus = uncertainty[(idx+1, range(uncertainty.shape[1]))]**2
+
+            x_max_var = 0.0625*(a1**2*(df_minus + df_plus) +
+                                a1*a2*(df_minus - df_plus) +
+                                a2**2*(4.0*df_max + df_minus + df_plus))/a2**4
+
+            y_max_var = 0.015625*(a1**4*(df_minus + df_plus) +
+                                  2.0*a1**3*a2*(df_minus - df_plus) +
+                                  4.0*a1**2*a2**2*(df_minus + df_plus) +
+                                  64.0*a2**4*df_max)/a2**4
+
+            return (
+                np.reshape(x0 + dx * x_max, shape),
+                np.reshape(dx * np.sqrt(x_max_var), shape),
+                np.reshape(y_max, shape),
+                np.reshape(np.sqrt(y_max_var), shape))
+
+        vel = np.ma.masked_array(data = self[velocity_column], mask = nan_mask)
+        results = np.array([quadratic(data[ell][~nan_mask[ell,:]], 
+                            uncertainty = uncertainty.data[ell,:][~nan_mask[ell,:]], 
+                            axis = 0, 
+                            x0 = np.min(vel.data[ell,:][~nan_mask[ell,:]]), 
+                            dx = np.diff(vel.data[ell,:][~nan_mask[ell,:]])[0]) 
+                            for ell in range(len(self))])
+
+        return results
+
+
+
+
+
+
+
+
 
 
 
