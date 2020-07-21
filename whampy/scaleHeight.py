@@ -21,11 +21,18 @@ except ModuleNotFoundError:
     # Error handling
     pass
 
+try:
+    import statsmodels.api as sm
+except ModuleNotFoundError:
+    # Error handling
+    pass
+
 from scipy.interpolate import interp1d
 from scipy import stats
 
 import seaborn as sns
 pal = sns.color_palette("colorblind")
+from seaborn.algorithms import bootstrap
 
 import pandas as pd
 
@@ -226,7 +233,8 @@ def get_scale_height_data(data, track = None, deredden = False,
 
 def fit_scale_heights(data, masks, min_lat = None, max_lat = None, 
     deredden = False, fig_names = None, return_smoothed = False, 
-    smoothed_width = None, xlim = None, ylim = None):
+    smoothed_width = None, xlim = None, ylim = None, robust = True, 
+    n_boot = 10000):
     """
     Fits scale height data and returns slopes
 
@@ -248,6 +256,11 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
         if True, returns smoothed longitude and slope estimates
     smoothed_width: `u.Quantity`
         width to smooth data to in longitude
+    robust: `bool`
+        if True, uses stats.models.robust_linear_model
+    n_boot: `int`
+        only if robust = True
+        number of bootstrap resamples
     """
 
     # Default values
@@ -276,16 +289,26 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
     intercept_neg = []
     intercept_pos_dr = []
     intercept_neg_dr = []
+    slopes_pos_err = []
+    slopes_neg_err = []
+    slopes_pos_dr_err = []
+    slopes_neg_dr_err = []
+    intercept_pos_err = []
+    intercept_neg_err = []
+    intercept_pos_dr_err = []
+    intercept_neg_dr_err = []
     median_longitude = []
     median_distance = []
     for ell2 in range(len(masks)):
         xx = data["tan(b)"][masks[ell2]]
         yy = np.log(data["INTEN"][masks[ell2]])
         nan_mask = np.isnan(yy)
+        nan_mask |= np.isinf(yy)
         
         if deredden:
             zz = np.log(data["INTEN_DERED"][masks[ell2]])
             nan_mask_z = np.isnan(zz)
+            nan_mask_z |= np.isinf(zz)
 
         median_longitude.append(np.median(data["GAL-LON"][masks[ell2]]))
         if deredden:
@@ -293,125 +316,353 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
 
         y_min = np.tan(min_lat)
         y_max = np.tan(max_lat)
+
+        if not robust:
         
-        if hasattr(stats, "siegelslopes"):
-            slope_estimator = stats.siegelslopes
-        else:
-            logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
-            slope_estimator = stats.theilslopes
+            if hasattr(stats, "siegelslopes"):
+                slope_estimator = stats.siegelslopes
+            else:
+                logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
+                slope_estimator = stats.theilslopes
 
-        siegel_result_pos = slope_estimator(yy[(xx > y_min) & (xx < y_max) & ~nan_mask],
-                                               xx[(xx > y_min) & (xx < y_max) & ~nan_mask])
-        siegel_result_neg = slope_estimator(yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask],
-                                               xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask])
-        
-        if deredden:
-            siegel_result_pos_dr = slope_estimator(zz[(xx > y_min) & (xx < y_max) & ~nan_mask_z],
-                                                   xx[(xx > y_min) & (xx < y_max) & ~nan_mask_z])
-            siegel_result_neg_dr = slope_estimator(zz[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z],
-                                                   xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z])
-
-        slopes_pos.append(siegel_result_pos[0])
-        slopes_neg.append(siegel_result_neg[0])
-        
-        intercept_pos.append(siegel_result_pos[1])
-        intercept_neg.append(siegel_result_neg[1])
-
-        if deredden:
-            slopes_pos_dr.append(siegel_result_pos_dr[0])
-            slopes_neg_dr.append(siegel_result_neg_dr[0])
-            intercept_pos_dr.append(siegel_result_pos_dr[1])
-            intercept_neg_dr.append(siegel_result_neg_dr[1])
-
-        if fig_names is not None:
-            figure_name = "{0}_{1}.png".format(fig_names, ell2)
-
-            if xlim is None:
-                xlim = np.array([-0.9, 0.9])
-            if ylim is None:
-                ylim = np.array([-4.6, 3.2])
-
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax2 = ax.twiny()
-
-
-            ax.scatter(xx, 
-                       yy, 
-                       color ="k", 
-                       alpha = 0.8)
+            siegel_result_pos = slope_estimator(yy[(xx > y_min) & (xx < y_max) & ~nan_mask],
+                                                   xx[(xx > y_min) & (xx < y_max) & ~nan_mask])
+            siegel_result_neg = slope_estimator(yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask],
+                                                   xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask])
+            
             if deredden:
+                siegel_result_pos_dr = slope_estimator(zz[(xx > y_min) & (xx < y_max) & ~nan_mask_z],
+                                                       xx[(xx > y_min) & (xx < y_max) & ~nan_mask_z])
+                siegel_result_neg_dr = slope_estimator(zz[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z],
+                                                       xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z])
+
+            slopes_pos.append(siegel_result_pos[0])
+            slopes_neg.append(siegel_result_neg[0])
+            
+            intercept_pos.append(siegel_result_pos[1])
+            intercept_neg.append(siegel_result_neg[1])
+
+            if deredden:
+                slopes_pos_dr.append(siegel_result_pos_dr[0])
+                slopes_neg_dr.append(siegel_result_neg_dr[0])
+                intercept_pos_dr.append(siegel_result_pos_dr[1])
+                intercept_neg_dr.append(siegel_result_neg_dr[1])
+
+            if fig_names is not None:
+                figure_name = "{0}_{1}.png".format(fig_names, ell2)
+
+                if xlim is None:
+                    xlim = np.array([-0.9, 0.9])
+                if ylim is None:
+                    ylim = np.array([-4.6, 3.2])
+
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                ax2 = ax.twiny()
+
+
                 ax.scatter(xx, 
-                           zz, 
-                           color ="grey", 
+                           yy, 
+                           color ="k", 
                            alpha = 0.8)
+                if deredden:
+                    ax.scatter(xx, 
+                               zz, 
+                               color ="grey", 
+                               alpha = 0.8)
 
 
-            ax.set_xlabel(r"$\tan$(b)", fontsize= 12)
-            ax.set_ylabel(r"$\log$($H\alpha$ Intensity / R)", fontsize= 12)
+                ax.set_xlabel(r"$\tan$(b)", fontsize= 12)
+                ax.set_ylabel(r"$\log$($H\alpha$ Intensity / R)", fontsize= 12)
 
-            ax.set_title(r"${0:.1f} < l < {1:.1f}$".format(data["GAL-LON"][masks[ell2]].min(), 
-                                                           data["GAL-LON"][masks[ell2]].max()), 
-                         fontsize = 14)
+                ax.set_title(r"${0:.1f} < l < {1:.1f}$".format(data["GAL-LON"][masks[ell2]].min(), 
+                                                               data["GAL-LON"][masks[ell2]].max()), 
+                             fontsize = 14)
 
-            ax2.plot(np.degrees(np.arctan(xlim)), 
-                     np.log([0.1,0.1]), ls = ":", lw = 1, 
-                    color = "k", label = "0.1 R")
-            ax2.fill_between([-min_lat, min_lat]*u.deg, [ylim[0], ylim[0]], [ylim[1], ylim[1]],
-                            color = pal[1], 
-                            alpha = 0.1, 
-                            label = r"$|b| < 5\degree$")
+                ax2.plot(np.degrees(np.arctan(xlim)), 
+                         np.log([0.1,0.1]), ls = ":", lw = 1, 
+                        color = "k", label = "0.1 R")
+                ax2.fill_between([-min_lat, min_lat]*u.deg, [ylim[0], ylim[0]], [ylim[1], ylim[1]],
+                                color = pal[1], 
+                                alpha = 0.1, 
+                                label = r"$|b| < 5\degree$")
 
-            line_xx = np.linspace(y_min, y_max, 10)
-            line_yy_pos = siegel_result_pos[0] * line_xx + siegel_result_pos[1]
-            line_yy_neg = siegel_result_neg[0] * -line_xx + siegel_result_neg[1]
-            ax.plot(line_xx, line_yy_pos, color = "r", lw = 3, alpha = 0.9, 
-                    label = r"$H_{{n_e^2}} = {0:.2f} D$".format(1/-siegel_result_pos[0]))
-            ax.plot(-line_xx, line_yy_neg, color = "b", lw = 3, alpha = 0.9, 
-                    label = r"$H_{{n_e^2}} = {0:.2f} D$".format(1/siegel_result_neg[0]))
+                line_xx = np.linspace(y_min, y_max, 10)
+                line_yy_pos = siegel_result_pos[0] * line_xx + siegel_result_pos[1]
+                line_yy_neg = siegel_result_neg[0] * -line_xx + siegel_result_neg[1]
+                ax.plot(line_xx, line_yy_pos, color = "r", lw = 3, alpha = 0.9, 
+                        label = r"$H_{{n_e^2}} = {0:.2f} D$".format(1/-siegel_result_pos[0]))
+                ax.plot(-line_xx, line_yy_neg, color = "b", lw = 3, alpha = 0.9, 
+                        label = r"$H_{{n_e^2}} = {0:.2f} D$".format(1/siegel_result_neg[0]))
+
+                if deredden:
+                    line_yy_pos_dr = siegel_result_pos_dr[0] * line_xx + siegel_result_pos_dr[1]
+                    line_yy_neg_dr = siegel_result_neg_dr[0] * -line_xx + siegel_result_neg_dr[1]
+                    ax.plot(line_xx, line_yy_pos_dr, color = "r", lw = 3, alpha = 0.9, ls = "--", 
+                            label = r"Dered: $H_{{n_e^2}} = {0:.2f} D$".format(1/-siegel_result_pos_dr[0]))
+                    ax.plot(-line_xx, line_yy_neg_dr, color = "b", lw = 3, alpha = 0.9,  ls = "--", 
+                            label = r"Dered: $H_{{n_e^2}} = {0:.2f} D$".format(1/siegel_result_neg_dr[0]))
+
+                
+                
+                
+
+                ax.set_xlim(xlim)
+                ax.set_ylim(ylim)
+
+                ax2.set_xlabel(r"$b$ (deg)", fontsize = 12)
+                ax2.set_xlim(np.degrees(np.arctan(xlim)))
+
+                ax.legend(fontsize = 12, loc = 1)
+                ax2.legend(fontsize = 12, loc = 2)
+
+                plt.tight_layout()
+
+                plt.savefig(figure_name, dpi = 300)
+                del(fig)
+                plt.close()
+
+            results = {
+            "median_longitude":np.array(median_longitude),
+            "slopes_pos":np.array(slopes_pos),
+            "slopes_neg":np.array(slopes_neg),
+            "intercept_pos":np.array(intercept_pos),
+            "intercept_neg":np.array(intercept_neg)
+            }
 
             if deredden:
-                line_yy_pos_dr = siegel_result_pos_dr[0] * line_xx + siegel_result_pos_dr[1]
-                line_yy_neg_dr = siegel_result_neg_dr[0] * -line_xx + siegel_result_neg_dr[1]
-                ax.plot(line_xx, line_yy_pos_dr, color = "r", lw = 3, alpha = 0.9, ls = "--", 
-                        label = r"Dered: $H_{{n_e^2}} = {0:.2f} D$".format(1/-siegel_result_pos_dr[0]))
-                ax.plot(-line_xx, line_yy_neg_dr, color = "b", lw = 3, alpha = 0.9,  ls = "--", 
-                        label = r"Dered: $H_{{n_e^2}} = {0:.2f} D$".format(1/siegel_result_neg_dr[0]))
 
-            
-            
-            
+                results["median_distance"] = np.array(median_distance),
+                results["slopes_pos_dr"] = np.array(slopes_pos_dr)
+                results["slopes_neg_dr"] = np.array(slopes_neg_dr)
+                results["intercept_pos_dr"] = np.array(intercept_pos_dr)
+                results["intercept_neg_dr"] = np.array(intercept_neg_dr)
 
-            ax.set_xlim(xlim)
-            ax.set_ylim(ylim)
+        else:
+            yy_pos = yy[(xx > y_min) & (xx < y_max) & ~nan_mask]
+            xx_pos = xx[(xx > y_min) & (xx < y_max) & ~nan_mask]
+            yy_neg = yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask]
+            xx_neg = xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask]
+            if ((len(yy_pos) < 5) | (len(yy_neg) < 5)):
+                slopes_pos.append(np.mean(boot_pos[:,1], axis = 0))
+                slopes_neg.append(np.mean(boot_neg[:,1], axis = 0))
+                slopes_pos_err.append(np.std(boot_pos[:,1], axis = 0))
+                slopes_neg_err.append(np.std(boot_neg[:,1], axis = 0))
+                
+                intercept_pos.append(np.mean(boot_pos[:,0], axis = 0))
+                intercept_neg.append(np.mean(boot_neg[:,0], axis = 0))
+                intercept_pos_err.append(np.std(boot_pos[:,0], axis = 0))
+                intercept_neg_err.append(np.std(boot_neg[:,0], axis = 0))
+            else:
+                if deredden:
+                    zz_dr_pos = zz[(xx > y_min) & (xx < y_max) & ~nan_mask_z]
+                    xx_dr_pos = xx[(xx > y_min) & (xx < y_max) & ~nan_mask_z]
+                    zz_dr_neg = zz[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z]
+                    xx_dr_neg = xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask_z]
+                    def slope_int_estimator_pos_dr(inds, 
+                        YY = zz_dr_pos,
+                        XX = xx_dr_pos):
+                        """
+                        estimate slope using sm.RLM
+                        """
+                        XX = XX[inds]
+                        YY = YY[inds]
+                        XX = sm.add_constant(XX)
+                        res = sm.RLM(YY, XX, M=sm.robust.norms.HuberT()).fit()
+                        return res.params
 
-            ax2.set_xlabel(r"$b$ (deg)", fontsize = 12)
-            ax2.set_xlim(np.degrees(np.arctan(xlim)))
+                    def slope_int_estimator_neg_dr(inds, 
+                        YY = zz_dr_neg,
+                        XX = xx_dr_neg):
+                        """
+                        estimate slope using sm.RLM
+                        """
+                        XX = XX[inds]
+                        YY = YY[inds]
+                        XX = sm.add_constant(XX)
+                        res = sm.RLM(YY, XX, M=sm.robust.norms.HuberT()).fit()
+                        return res.params
 
-            ax.legend(fontsize = 12, loc = 1)
-            ax2.legend(fontsize = 12, loc = 2)
+                def slope_int_estimator_pos(inds, 
+                    YY = yy_pos,
+                    XX = xx_pos):
+                    """
+                    estimate slope using sm.RLM
+                    """
+                    XX = XX[inds]
+                    YY = YY[inds]
+                    XX = sm.add_constant(XX)
+                    res = sm.RLM(YY, XX, M=sm.robust.norms.HuberT()).fit()
+                    return res.params
 
-            plt.tight_layout()
+                def slope_int_estimator_neg(inds, 
+                    YY = yy_neg,
+                    XX = xx_neg):
+                    """
+                    estimate slope using sm.RLM
+                    """
+                    XX = XX[inds]
+                    YY = YY[inds]
+                    XX = sm.add_constant(XX)
+                    res = sm.RLM(YY, XX, M=sm.robust.norms.HuberT()).fit()
+                    return res.params
+                
 
-            plt.savefig(figure_name, dpi = 300)
-            del(fig)
-            plt.close()
+                boot_pos = bootstrap(np.arange(len(yy_pos)), func = slope_int_estimator_pos, n_boot = n_boot)
+                boot_neg = bootstrap(np.arange(len(yy_neg)), func = slope_int_estimator_neg, n_boot = n_boot)
 
-    results = {
-    "median_longitude":np.array(median_longitude),
-    "slopes_pos":np.array(slopes_pos),
-    "slopes_neg":np.array(slopes_neg),
-    "intercept_pos":np.array(intercept_pos),
-    "intercept_neg":np.array(intercept_neg)
-    }
+                slopes_pos.append(np.mean(boot_pos[:,1], axis = 0))
+                slopes_neg.append(np.mean(boot_neg[:,1], axis = 0))
+                slopes_pos_err.append(np.std(boot_pos[:,1], axis = 0))
+                slopes_neg_err.append(np.std(boot_neg[:,1], axis = 0))
+                
+                intercept_pos.append(np.mean(boot_pos[:,0], axis = 0))
+                intercept_neg.append(np.mean(boot_neg[:,0], axis = 0))
+                intercept_pos_err.append(np.std(boot_pos[:,0], axis = 0))
+                intercept_neg_err.append(np.std(boot_neg[:,0], axis = 0))
 
-    if deredden:
+                if deredden:
+                    boot_pos_dr = bootstrap(np.arange(len(zz_dr_pos)), func = slope_int_estimator_pos_dr, n_boot = n_boot)
+                    boot_neg_dr = bootstrap(np.arange(len(zz_dr_neg)), func = slope_int_estimator_neg_dr, n_boot = n_boot)
 
-        results["median_distance"] = np.array(median_distance),
-        results["slopes_pos_dr"] = np.array(slopes_pos_dr)
-        results["slopes_neg_dr"] = np.array(slopes_neg_dr)
-        results["intercept_pos_dr"] = np.array(intercept_pos_dr)
-        results["intercept_neg_dr"] = np.array(intercept_neg_dr)
+                    slopes_pos_dr.append(np.mean(boot_pos_dr[:,1], axis = 0))
+                    slopes_neg_dr.append(np.mean(boot_neg_dr[:,1], axis = 0))
+                    slopes_pos_dr_err.append(np.std(boot_pos_dr[:,1], axis = 0))
+                    slopes_neg_dr_err.append(np.std(boot_neg_dr[:,1], axis = 0))
+                    
+                    intercept_pos_dr.append(np.mean(boot_pos_dr[:,0], axis = 0))
+                    intercept_neg_dr.append(np.mean(boot_neg_dr[:,0], axis = 0))
+                    intercept_pos_dr_err.append(np.std(boot_pos_dr[:,0], axis = 0))
+                    intercept_neg_dr_err.append(np.std(boot_neg_dr[:,0], axis = 0))
+
+
+                if fig_names is not None:
+                    figure_name = "{0}_{1}.png".format(fig_names, ell2)
+
+                    if xlim is None:
+                        xlim = np.array([-0.9, 0.9])
+                    if ylim is None:
+                        ylim = np.array([-4.6, 3.2])
+
+                    fig = plt.figure()
+                    ax = fig.add_subplot(111)
+                    ax2 = ax.twiny()
+
+
+                    ax.scatter(xx, 
+                               yy, 
+                               color ="k", 
+                               alpha = 0.8)
+                    if deredden:
+                        ax.scatter(xx, 
+                                   zz, 
+                                   color ="grey", 
+                                   alpha = 0.8)
+
+
+                    ax.set_xlabel(r"$\tan$(b)", fontsize= 12)
+                    ax.set_ylabel(r"$\log$($H\alpha$ Intensity / R)", fontsize= 12)
+
+                    ax.set_title(r"${0:.1f} < l < {1:.1f}$".format(data["GAL-LON"][masks[ell2]].min(), 
+                                                                   data["GAL-LON"][masks[ell2]].max()), 
+                                 fontsize = 14)
+
+                    ax2.plot(np.degrees(np.arctan(xlim)), 
+                             np.log([0.1,0.1]), ls = ":", lw = 1, 
+                            color = "k", label = "0.1 R")
+                    ax2.fill_between([-min_lat, min_lat]*u.deg, [ylim[0], ylim[0]], [ylim[1], ylim[1]],
+                                    color = pal[1], 
+                                    alpha = 0.1, 
+                                    label = r"$|b| < 5\degree$")
+
+                    line_xx = np.linspace(y_min, y_max, 100)
+                    def get_slope_conf_band(boot_res, X = line_xx):
+                        yy = [[res[0] + res[1] * X] for res in boot_res]
+                        yy = np.vstack(yy)
+                        return np.percentile(yy, (5,95), axis = 0)
+
+
+                    line_yy_pos = slopes_pos[-1] * line_xx + intercept_pos[-1]
+                    line_yy_neg = slopes_neg[-1] * -line_xx + intercept_neg[-1]
+                    line_yy_pos_range = get_slope_conf_band(boot_pos)
+                    line_yy_neg_range = get_slope_conf_band(boot_neg, X = -line_xx)
+
+                    ax.plot(line_xx, line_yy_pos, color = "r", lw = 3, alpha = 0.9, 
+                            label = r"$H_{{n_e^2}} = ({0:.2f} \pm {1:.2f}) D$".format(1/-slopes_pos[-1], np.abs(1/slopes_pos[-1] * slopes_pos_err[-1] / slopes_pos[-1])))
+                    ax.fill_between(line_xx, line_yy_pos_range[0], line_yy_pos_range[1], 
+                        color = "r", alpha = 0.2)
+                    ax.plot(-line_xx, line_yy_neg, color = "b", lw = 3, alpha = 0.9, 
+                            label = r"$H_{{n_e^2}} = ({0:.2f} \pm {1:.2f}) D$".format(1/slopes_neg[-1],  np.abs(-1/slopes_pos[-1] * slopes_pos_err[-1] / slopes_pos[-1])))
+                    ax.fill_between(-line_xx, line_yy_neg_range[0], line_yy_neg_range[1], 
+                        color = "b", alpha = 0.2)
+
+                    if deredden:
+                        line_yy_pos_dr = slopes_pos_dr[-1] * line_xx + intercept_pos_dr[-1]
+                        line_yy_neg_dr = slopes_neg_dr[-1] * -line_xx + intercept_neg_dr[-1]
+                        line_yy_pos_range_dr = get_slope_conf_band(boot_pos_dr)
+                        line_yy_neg_range_dr = get_slope_conf_band(boot_neg_dr, X = -line_xx)
+
+                        ax.plot(line_xx, line_yy_pos_dr, color = "r", lw = 3, alpha = 0.9, ls = "--",
+                                label = r"Dered: $H_{{n_e^2}} = ({0:.2f} \pm {1:.2f}) D$".format(1/-slopes_pos_dr[-1], np.abs(1/slopes_pos_dr[-1] * slopes_pos_dr_err[-1] / slopes_pos_dr[-1])))
+                        ax.fill_between(line_xx, line_yy_pos_range_dr[0], line_yy_pos_range_dr[1], 
+                            color = "r", alpha = 0.2)
+                        ax.plot(-line_xx, line_yy_neg_dr, color = "b", lw = 3, alpha = 0.9, ls = "--",
+                                label = r"Dered: $H_{{n_e^2}} = ({0:.2f} \pm {1:.2f}) D$".format(1/slopes_neg_dr[-1], np.abs(-1/slopes_pos_dr[-1] * slopes_pos_dr_err[-1] / slopes_pos_dr[-1])))
+                        ax.fill_between(-line_xx, line_yy_neg_range_dr[0], line_yy_neg_range_dr[1], 
+                            color = "b", alpha = 0.2)
+                        
+
+                    
+                    
+                    
+
+                    ax.set_xlim(xlim)
+                    ax.set_ylim(ylim)
+
+                    ax2.set_xlabel(r"$b$ (deg)", fontsize = 12)
+                    ax2.set_xlim(np.degrees(np.arctan(xlim)))
+
+                    ax.legend(fontsize = 12, loc = 1)
+                    ax2.legend(fontsize = 12, loc = 2)
+
+                    plt.tight_layout()
+
+                    plt.savefig(figure_name, dpi = 300)
+                    del(fig)
+                    plt.close()
+
+
+
+
+
+
+
+
+
+
+            results = {
+            "median_longitude":np.array(median_longitude),
+            "slopes_pos":np.array(slopes_pos),
+            "slopes_neg":np.array(slopes_neg),
+            "intercept_pos":np.array(intercept_pos),
+            "intercept_neg":np.array(intercept_neg),
+            "slopes_pos_err":np.array(slopes_pos_err),
+            "slopes_neg_err":np.array(slopes_neg_err),
+            "intercept_pos_err":np.array(intercept_pos_err),
+            "intercept_neg_err":np.array(intercept_neg_err)
+            }
+
+            if deredden:
+
+                results["median_distance"] = np.array(median_distance),
+                results["slopes_pos_dr"] = np.array(slopes_pos_dr)
+                results["slopes_neg_dr"] = np.array(slopes_neg_dr)
+                results["intercept_pos_dr"] = np.array(intercept_pos_dr)
+                results["intercept_neg_dr"] = np.array(intercept_neg_dr)
+                results["slopes_pos_dr_err"] = np.array(slopes_pos_dr_err)
+                results["slopes_neg_dr_err"] = np.array(slopes_neg_dr_err)
+                results["intercept_pos_dr_err"] = np.array(intercept_pos_dr_err)
+                results["intercept_neg_dr_err"] = np.array(intercept_neg_dr_err)
 
     if return_smoothed:
         results["smoothed_longitude"] = np.arange(np.min(median_longitude), 

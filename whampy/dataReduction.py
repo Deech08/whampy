@@ -1078,15 +1078,19 @@ def set_geocentric_zero_from_geocoronal(target_data, geo_results = None,
             if res.message.rsplit(".")[0] == 'Fit succeeded':
                 offset = res.params["mean"].value - (-2.33)
 
-                if (np.abs(offset) < 12) & (res.params["amp"].value > 2):
+                if (np.abs(offset) < 12):
                     row[new_velocity_column] = row[velocity_column] - offset
                     row["allow_jitter"] = False
                     if subtract:
                         comp = res.best_fit - res.params["baseline"].value
-                        # bright = 
-                        # bright_g = Gaussian1D(res.params["amp"].value, 
-                        #     res.params["mean"].value, 
-                        #     res.params["std"].value)
+                        # try:
+                        #     assert len(comp) == len(row[data_column])
+                        # except AssertionError:
+                        #     print("Warning: Shape mis-match for row {}".format(ell))
+                        # else:
+                        # Check for messed up shape issue
+                        if len(comp) != len(row[data_column]):
+                            comp = np.concatenate([[np.nan, np.nan, np.nan], comp])
                         row[data_column] -= comp
                 else:
                     row[new_velocity_column][:] = np.nan
@@ -1611,7 +1615,7 @@ def spectrum_model(target_row, atm_template,
 
     
     
-def apply_atmsub(row, model_result, subtract_gaussian = None):
+def apply_atmsub(row, model_result, subtract_gaussian = None, atm_temp = None):
     """
     Apply ATM subtractiton based on provided model results
 
@@ -1646,15 +1650,22 @@ def apply_atmsub(row, model_result, subtract_gaussian = None):
         both_errs = np.vstack([atm_upper - atm_component, atm_component - atm_lower])
         atm_errs = np.ma.median(both_errs, axis = 0)
 
+
+
     subtracted_spectrum = row["DATA"] - atm_component - baseline_component - gaussian_component
     if stderr is not None:
         spectrum_error = np.sqrt(row["VARIANCE"]) + atm_errs
     else:
         spectrum_error = np.sqrt(row["VARIANCE"])
 
+    if atm_temp is not None:
+        atm_temp_var_inter = interp1d(atm_temp["VELOCITY"], atm_temp["VARIANCE"], bounds_error = False)
+        atm_temp_var = atm_temp_var_inter(row["VELOCITY_GEO"])
+        spectrum_error = np.sqrt(spectrum_error**2 + atm_temp_var)
+
     return subtracted_spectrum, spectrum_error **2
 
-def all_apply_atmsub(self, model_results, subtract_gaussian = None):
+def all_apply_atmsub(self, model_results, subtract_gaussian = None, atm_temp = None):
     """
     Apply ATM subtractiton based on provided model results
 
@@ -1678,7 +1689,8 @@ def all_apply_atmsub(self, model_results, subtract_gaussian = None):
     for row, model_result in zip(self, model_results):
         if model_result != "none":
 
-            spec, var = apply_atmsub(row, model_result, subtract_gaussian = subtract_gaussian)
+            spec, var = apply_atmsub(row, model_result, subtract_gaussian = subtract_gaussian, 
+                atm_temp = atm_temp)
             row["DATA_ATMSUB"] = spec 
             row["VARIANCE_ATMSUB"] = var
             if subtract_gaussian is not None:
