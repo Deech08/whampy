@@ -1615,7 +1615,7 @@ def spectrum_model(target_row, atm_template,
 
     
     
-def apply_atmsub(row, model_result, subtract_gaussian = None, atm_temp = None):
+def apply_atmsub(row, model_result, subtract_gaussian = None, atm_temp_in = None):
     """
     Apply ATM subtractiton based on provided model results
 
@@ -1658,10 +1658,10 @@ def apply_atmsub(row, model_result, subtract_gaussian = None, atm_temp = None):
     else:
         spectrum_error = np.sqrt(row["VARIANCE"])
 
-    if atm_temp is not None:
+    if atm_temp_in is not None:
         atm_temp_var_inter = interp1d(atm_temp["VELOCITY"], atm_temp["VARIANCE"], bounds_error = False)
         atm_temp_var = atm_temp_var_inter(row["VELOCITY_GEO"])
-        spectrum_error = np.sqrt(spectrum_error**2 + atm_temp_var)
+        spectrum_error = np.sqrt(spectrum_error**2 + atm_temp_var*atm**2)
 
     return subtracted_spectrum, spectrum_error **2
 

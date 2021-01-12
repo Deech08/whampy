@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle
+from astropy.table import Column
 
 from .clickMap import SpectrumPlotter
 
@@ -227,7 +228,10 @@ class SkySurveyMixin(object):
                         vel_range = None,
                         s_factor = 1., colorbar = False, cbar_kwargs = {}, 
                         return_sc = False, 
-                        smooth = False, smooth_res = None, **kwargs):
+                        smooth = False, 
+                        smooth_res = None, 
+                        wrap_at = "180d",
+                        **kwargs):
         """
         plots the intensity map using WHAM beams as scatter plots
 
@@ -257,6 +261,9 @@ class SkySurveyMixin(object):
             if True, smooths map using griddata and plots using pcolormesh
         smooth_res: `number`, optional, must be keyword
             pixel width in units of degrees
+        wrap_at: 'str', optional, must be keyword - either "180d" or "360d"
+            sets value to wrap longitude degree values to
+            Defaults to "180d"
         **kwarrgs: `dict`
             passed to scatter plot
 
@@ -275,12 +282,12 @@ class SkySurveyMixin(object):
         wham_coords = self.get_SkyCoord()
 
         if lrange is None:
-            lrange_s = [wham_coords.l.wrap_at("180d").max().value, wham_coords.l.wrap_at("180d").min().value]
+            lrange_s = [wham_coords.l.wrap_at(wrap_at).max().value, wham_coords.l.wrap_at(wrap_at).min().value]
         elif isinstance(lrange, u.Quantity):
-            lrange = Angle(lrange).wrap_at("180d").value
+            lrange = Angle(lrange).wrap_at(wrap_at).value
         else:
             logging.warning("No units provided for lrange, assuming u.deg")
-            lrange = Angle(lrange*u.deg).wrap_at("180d").value
+            lrange = Angle(lrange*u.deg).wrap_at(wrap_at).value
         if brange is None:
             brange_s = [wham_coords.b.min().value, wham_coords.b.max().value]
         elif isinstance(brange, u.Quantity):
@@ -303,9 +310,14 @@ class SkySurveyMixin(object):
             elif not isinstance(vel_range, u.Quantity):
                 logging.warning("No units provided for vel_range, assuming u.km/u.s")
                 vel_range *= u.km/u.s
+                kwargs["c"] = Column(data = self.moment(order = 0, 
+                    vmin = vel_range.min(), 
+                    vmax = vel_range.max()).to(u.R).value, unit = u.R)
             else:
                 vel_range = vel_range.to(u.km/u.s)
-                kwargs["c"] = self.moment(order = 0, vmin = vel_range.min(), vmax = vel_range.max())
+                kwargs["c"] = Column(data = self.moment(order = 0, 
+                    vmin = vel_range.min(), 
+                    vmax = vel_range.max()).to(u.R).value, unit = u.R)
 
         if not "cmap" in kwargs:
             kwargs["cmap"] = 'plasma'
@@ -317,13 +329,15 @@ class SkySurveyMixin(object):
             kwargs["vmax"] = 100.
 
         if not "norm" in kwargs:
-            kwargs["norm"] = LogNorm()
+            kwargs["norm"] = LogNorm(vmin = kwargs["vmin"], vmax = kwargs["vmax"])
+            _ = kwargs.pop('vmin') 
+            _ = kwargs.pop('vmax') 
         if hasattr(ax, "coastlines"):
             if not "transform" in kwargs:
                 kwargs["transform"] = ccrs.PlateCarree()
                 print("No transform specified with cartopy axes projection, assuming PlateCarree")
 
-        lon_points = wham_coords.l.wrap_at("180d")
+        lon_points = wham_coords.l.wrap_at(wrap_at)
         lat_points = wham_coords.b.wrap_at("180d")
 
         if smooth:
@@ -367,11 +381,14 @@ class SkySurveyMixin(object):
             sc = ax.scatter(lon_points, lat_points, **kwargs)
 
         if not hasattr(ax, "coastlines"):
-            if (lrange is not None) & (brange is not None):
+            if lrange is not None:
                 ax.set_xlim(lrange)
-                ax.set_ylim(brange)
             else:
                 ax.invert_xaxis()
+
+            if brange is not None:
+                ax.set_ylim(brange)
+            
             ax.set_xlabel("Galactic Longitude (deg)", fontsize = 12)
             ax.set_ylabel("Galactic Latitude (deg)", fontsize = 12)
         else:
@@ -405,6 +422,7 @@ class SkySurveyMixin(object):
                     over_data = None, average_beam = False, 
                     radius = None, over_spectra_kwargs = {}, 
                     over_spec_ax = None, share_yaxis = False,
+                    no_image = False,
                      **kwargs):
                     
         """
@@ -442,6 +460,10 @@ class SkySurveyMixin(object):
             if True, over_spectra shares same y_axis as spectra
             if False, over_spec_ax has a unique y_axis
             if over_spec_ax is provided, share_yaxis is not used
+        no_image: 'bool', optional, must be keyword
+            if True, does not plot a WHAM intensity map
+            Can instead plot any image using WCS axes or default coordinate axes and click 
+            to plot spectra below it
         **kwargs: 'dict', must be keywords
             passed to `SkySurvey.intensity_map`
         """
@@ -468,7 +490,9 @@ class SkySurveyMixin(object):
 
 
         # Plot image
-        fig = self.intensity_map(fig = fig, ax = image_ax, **kwargs)
+        if not no_image:
+            fig = self.intensity_map(fig = fig, ax = image_ax, **kwargs)
+
 
         # Check for and assign default plot parameters
         if ("lw" not in spectra_kwargs) & ("linewidth" not in spectra_kwargs):
