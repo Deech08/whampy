@@ -19,7 +19,7 @@ except ModuleNotFoundError:
 
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle
-from astropy.table import Column
+from astropy.table import Column, Table
 
 from .clickMap import SpectrumPlotter
 
@@ -27,7 +27,7 @@ from .lbvTracks import get_spiral_slice
 from .scaleHeight import get_scale_height_data
 from .spectralStack import stack_spectra_bootstrap
 
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, interp1d
 
 
 
@@ -38,6 +38,71 @@ class SkySurveyMixin(object):
     """
     Mixin class with convenience functions for WHAM data
     """
+
+    def __truediv__(self,other):
+        if hasattr(other,"get_SkyCoord"):
+            #Get skycoords
+            c_self = self.get_SkyCoord()
+            c_other = other.get_SkyCoord()
+            match_idx, sep, _ = c_self.match_to_catalog_sky(c_other)
+            #check seeparations
+            true_match_mask = sep < 0.075 * u.deg
+            true_match_idx = match_idx[true_match_mask]
+            #new Table
+            data = Table()
+            data["GAL-LON"] = self["GAL-LON"][true_match_mask]
+            data["GAL-LAT"] = self["GAL-LAT"][true_match_mask]
+
+            min_velocity = np.min([np.nanmin(self["VELOCITY"]),
+                                              np.nanmin(other["VELOCITY"])])
+            max_velocity = np.max([np.nanmax(self["VELOCITY"]),
+                                              np.nanmax(other["VELOCITY"])])
+            velocity_ax = np.arange(min_velocity,max_velocity+1.5,1.5)
+
+            data["DATA"] = [interp1d(vel_num, data_num, 
+                                    bounds_error = False)(velocity_ax) / interp1d(vel_denom, data_denom, 
+                                                                                bounds_error = False)(velocity_ax) 
+                            for (vel_num, data_num, vel_denom, data_denom) 
+                            in zip(self["VELOCITY"][true_match_mask],self["DATA"][true_match_mask], 
+                                   other["VELOCITY"][true_match_idx],other["DATA"][true_match_idx])]*u.R / u.km * u.s
+
+            data["VARIANCE"] = data["DATA"] * [np.sqrt(interp1d(vel_num, var_num, 
+                                    bounds_error = False)(velocity_ax)/interp1d(vel_num, data_num, 
+                                                                                bounds_error = False)(velocity_ax)**2 + interp1d(vel_denom, var_denom, 
+                                                                                                                                bounds_error = False)(velocity_ax) /interp1d(vel_denom, data_denom, 
+                                                                                                                                                                            bounds_error = False)(velocity_ax)**2) 
+                            for (vel_num, data_num, var_num, vel_denom, data_denom, var_denom) 
+                            in zip(self["VELOCITY"][true_match_mask],self["DATA"][true_match_mask],self["VARIANCE"][true_match_mask], 
+                                   other["VELOCITY"][true_match_idx],other["DATA"][true_match_idx],other["VARIANCE"][true_match_idx])]
+
+            # Just numerator Data
+            data["DATA_NUM"] = [interp1d(vel_num, data_num, 
+                                    bounds_error = False)(velocity_ax)
+                            for (vel_num, data_num) 
+                            in zip(self["VELOCITY"][true_match_mask],self["DATA"][true_match_mask])]*u.R / u.km * u.s
+            data["VARIANCE_NUM"] = [interp1d(vel_num, var_num, 
+                                    bounds_error = False)(velocity_ax)
+                            for (vel_num, var_num) 
+                            in zip(self["VELOCITY"][true_match_mask],self["VARIANCE"][true_match_mask])]*u.R / u.km * u.s
+
+            # Just denominator data
+            data["DATA_DENOM"] = [interp1d(vel_num, data_num, 
+                                    bounds_error = False)(velocity_ax)
+                            for (vel_num, data_num) 
+                            in zip(other["VELOCITY"][true_match_idx],other["DATA"][true_match_idx])]*u.R / u.km * u.s
+            data["VARIANCE_DENOM"] = [interp1d(vel_num, var_num, 
+                                    bounds_error = False)(velocity_ax)
+                            for (vel_num, var_num) 
+                            in zip(other["VELOCITY"][true_match_idx],other["VARIANCE"][true_match_idx])]*u.R / u.km * u.s
+
+            data["VELOCITY"] = [velocity_ax for idx in true_match_idx] * u.km/u.s
+            return self.__class__(from_table = data)
+        else:
+            self["DATA"] = self["DATA"]/other
+            self["VARIANCE"] = self["VARIANCE"]/other**2
+            
+
+
 
     def get_SkyCoord(self, **kwargs):
         """
@@ -127,7 +192,7 @@ class SkySurveyMixin(object):
 
 
     def moment(self, order = None, vmin = None, vmax = None, 
-        return_sigma = False, masked = False):
+        return_sigma = False, masked = False, ratio = False):
         """
         compute moment maps 
 
@@ -143,84 +208,142 @@ class SkySurveyMixin(object):
             if True, will also return one-sigma gaussian error estimate
         masked: `bool`, optional, must be keyword
             if True, used masked velocity axis
+        ratio: `bool`, optional, must be keyword
+            if True, assumes computnig for a line ratio
         """
 
-        if order is None:
-            order = 0 # Assume default value
+        if not ratio:
 
-        # Mask out nan values
-        nan_msk = np.isnan(self["DATA"]) | np.isnan(self["VELOCITY"])
-        # Mask out negative data values
-        nan_msk |= self["DATA"] < 0.
+            if order is None:
+                order = 0 # Assume default value
 
-        # masked velocity axis
-        if masked:
-            nan_msk |= np.invert(self["VEL_MASK"])
+            # Mask out nan values
+            nan_msk = np.isnan(self["DATA"]) | np.isnan(self["VELOCITY"])
+            # Mask out negative data values
+            nan_msk |= self["DATA"] < 0.
 
-        if return_sigma:
-            nan_msk |= np.isnan(self["VARIANCE"])
+            # masked velocity axis
+            if masked:
+                nan_msk |= np.invert(self["VEL_MASK"])
 
-        # Velocity mask if applicable:
-        if vmin is not None:
-            if not isinstance(vmin, u.Quantity):
-                logging.warning("No units specified for vmin, assuming u.km/u.s")
-                vmin *= u.km/u.s
-
-            nan_msk |= self["VELOCITY"] <= vmin.to(u.km/u.s).value
-
-        if vmax is not None:
-            if not isinstance(vmax, u.Quantity):
-                logging.warning("No units specified for vmax, assuming u.km/u.s")
-                vmax *= u.km/u.s
-
-            nan_msk |= self["VELOCITY"] >= vmax.to(u.km/u.s).value
-
-        data_masked = np.ma.masked_array(self["DATA"], mask = nan_msk)
-        vel_masked = np.ma.masked_array(self["VELOCITY"], mask = nan_msk)
-        var_masked = np.ma.masked_array(self["VARIANCE"], mask = nan_msk)
-
-
-        # Caution - Errors not to be trusted...
-        # Zeroth Order Moment
-        moment_0 = np.trapz(data_masked, x = vel_masked, 
-            axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
-        err_0 = np.trapz(np.sqrt(var_masked), x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
-
-        if order > 0:
-            moment_1 = np.trapz(data_masked * vel_masked, x = vel_masked, 
-                axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / moment_0
-            err_num = np.trapz(np.sqrt(var_masked) * vel_masked, x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2
-            err_denom = err_0
-
-            error_1 = np.sqrt((err_num/(moment_1*moment_0))**2 + (err_denom/moment_0)**2)*np.abs(moment_1)
-            # err_1_subover_mom_1 = np.trapz(np.sqrt(var_masked) * vel_masked**2, x = vel_masked, 
-            #                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
-            # err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
-            if order > 1:
-                moment_2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2, 
-                    x = vel_masked, 
-                    axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / moment_0
-
-                err_2_subover_mom2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked / 
-                                data_masked**2 + 2*(err_1[:,None] / moment_1[:,None])**2), 
-                    x = vel_masked, 
-                    axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / (moment_2 * moment_0)
-
-                err_2 = moment_2 * np.sqrt(err_2_subover_mom2**2 + (err_0 / moment_0)**2)
-                if return_sigma:
-                    return moment_2, err_2
-                else:
-                    return moment_2
-            else:
-                if return_sigma:
-                    return moment_1, err_1
-                else:
-                    return moment_1
-        else:
             if return_sigma:
-                return moment_0, err_0
+                nan_msk |= np.isnan(self["VARIANCE"])
+
+            # Velocity mask if applicable:
+            if vmin is not None:
+                if not isinstance(vmin, u.Quantity):
+                    logging.warning("No units specified for vmin, assuming u.km/u.s")
+                    vmin *= u.km/u.s
+
+                nan_msk |= self["VELOCITY"] <= vmin.to(u.km/u.s).value
+
+            if vmax is not None:
+                if not isinstance(vmax, u.Quantity):
+                    logging.warning("No units specified for vmax, assuming u.km/u.s")
+                    vmax *= u.km/u.s
+
+                nan_msk |= self["VELOCITY"] >= vmax.to(u.km/u.s).value
+
+            data_masked = np.ma.masked_array(self["DATA"], mask = nan_msk)
+            vel_masked = np.ma.masked_array(self["VELOCITY"], mask = nan_msk)
+            var_masked = np.ma.masked_array(self["VARIANCE"], mask = nan_msk)
+
+
+            # Caution - Errors not to be trusted...
+            # Zeroth Order Moment
+            moment_0 = np.trapz(data_masked, x = vel_masked, 
+                axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
+            err_0 = np.trapz(np.sqrt(var_masked), x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
+
+            if order > 0:
+                moment_1 = np.trapz(data_masked * vel_masked, x = vel_masked, 
+                    axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / moment_0
+                err_num = np.trapz(np.sqrt(var_masked) * vel_masked, x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2
+                err_denom = err_0
+
+                error_1 = np.sqrt((err_num/(moment_1*moment_0))**2 + (err_denom/moment_0)**2)*np.abs(moment_1)
+                # err_1_subover_mom_1 = np.trapz(np.sqrt(var_masked) * vel_masked**2, x = vel_masked, 
+                #                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
+                # err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
+                if order > 1:
+                    moment_2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2, 
+                        x = vel_masked, 
+                        axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / moment_0
+
+                    err_2_subover_mom2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked / 
+                                    data_masked**2 + 2*(err_1[:,None] / moment_1[:,None])**2), 
+                        x = vel_masked, 
+                        axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / (moment_2 * moment_0)
+
+                    err_2 = moment_2 * np.sqrt(err_2_subover_mom2**2 + (err_0 / moment_0)**2)
+                    if return_sigma:
+                        return moment_2, err_2
+                    else:
+                        return moment_2
+                else:
+                    if return_sigma:
+                        return moment_1, err_1
+                    else:
+                        return moment_1
             else:
-                return moment_0
+                if return_sigma:
+                    return moment_0, err_0
+                else:
+                    return moment_0
+        else:
+            if order > 0:
+                raise NotImplementedError
+
+            # Mask out nan values
+            nan_msk = np.isnan(self["DATA_NUM"]) | np.isnan(self["VELOCITY"]) | (np.isnan(self["DATA_DENOM"]))
+            # Mask out negative data values
+            nan_msk |= (self["DATA_NUM"] < 0.) | (self["DATA_DENOM"] < 0.)
+
+            # masked velocity axis
+            if masked:
+                nan_msk |= np.invert(self["VEL_MASK"])
+
+            if return_sigma:
+                nan_msk |= (np.isnan(self["VARIANCE_NUM"])) | (np.isnan(self["VARIANCE_DENOM"]))
+
+            if vmin is not None:
+                if not isinstance(vmin, u.Quantity):
+                    logging.warning("No units specified for vmin, assuming u.km/u.s")
+                    vmin *= u.km/u.s
+
+                nan_msk |= self["VELOCITY"] <= vmin.to(u.km/u.s).value
+
+            if vmax is not None:
+                if not isinstance(vmax, u.Quantity):
+                    logging.warning("No units specified for vmax, assuming u.km/u.s")
+                    vmax *= u.km/u.s
+
+                nan_msk |= self["VELOCITY"] >= vmax.to(u.km/u.s).value
+
+            data_masked_num = np.ma.masked_array(self["DATA_NUM"], mask = nan_msk)
+            data_masked_denom = np.ma.masked_array(self["DATA_DENOM"], mask = nan_msk)
+            vel_masked = np.ma.masked_array(self["VELOCITY"], mask = nan_msk)
+            var_masked_num = np.ma.masked_array(self["VARIANCE_NUM"], mask = nan_msk)
+            var_masked_denom = np.ma.masked_array(self["VARIANCE_DENOM"], mask = nan_msk)
+
+
+            # Caution - Errors not to be trusted...
+            # Zeroth Order Moment
+            moment_0_num = np.trapz(data_masked_num, x = vel_masked, 
+                axis = 1) * self["DATA_NUM"].unit * self["VELOCITY"].unit
+            err_0_num = np.trapz(np.sqrt(var_masked_num), x = vel_masked, axis = 1) * self["DATA_NUM"].unit * self["VELOCITY"].unit
+
+            moment_0_denom = np.trapz(data_masked_denom, x = vel_masked, 
+                axis = 1) * self["DATA_DENOM"].unit * self["VELOCITY"].unit
+            err_0_denom = np.trapz(np.sqrt(var_masked_num), x = vel_masked, axis = 1) * self["DATA_DENOM"].unit * self["VELOCITY"].unit
+
+
+            moment_0 = moment_0_num / moment_0_denom
+            err_0 = np.sqrt((err_0_num / moment_0_num)**2 + (err_0_denom / moment_0_denom)**2) * moment_0
+            if return_sigma:
+                return moment_0 * u.R, err_0 * u.R
+            else:
+                return moment_0 * u.R
 
 
     # Plotting Functions
@@ -231,6 +354,7 @@ class SkySurveyMixin(object):
                         smooth = False, 
                         smooth_res = None, 
                         wrap_at = "180d",
+                        ratio = False,
                         **kwargs):
         """
         plots the intensity map using WHAM beams as scatter plots
@@ -264,6 +388,8 @@ class SkySurveyMixin(object):
         wrap_at: 'str', optional, must be keyword - either "180d" or "360d"
             sets value to wrap longitude degree values to
             Defaults to "180d"
+        ratio: `bool`, optional, must be keyword
+            if True treated as a line ratio
         **kwarrgs: `dict`
             passed to scatter plot
 
@@ -306,18 +432,21 @@ class SkySurveyMixin(object):
 
         if not "c" in kwargs:
             if vel_range is None:
-                kwargs["c"] = self["INTEN"]
+                if "INTEN" in self.keys():
+                    kwargs["c"] = self["INTEN"]
+                else:
+                    kwargs["c"] = self.moment(order = 0, ratio = ratio)
             elif not isinstance(vel_range, u.Quantity):
                 logging.warning("No units provided for vel_range, assuming u.km/u.s")
                 vel_range *= u.km/u.s
                 kwargs["c"] = Column(data = self.moment(order = 0, 
                     vmin = vel_range.min(), 
-                    vmax = vel_range.max()).to(u.R).value, unit = u.R)
+                    vmax = vel_range.max(), ratio = ratio).to(u.R).value, unit = u.R)
             else:
                 vel_range = vel_range.to(u.km/u.s)
                 kwargs["c"] = Column(data = self.moment(order = 0, 
                     vmin = vel_range.min(), 
-                    vmax = vel_range.max()).to(u.R).value, unit = u.R)
+                    vmax = vel_range.max(), ratio = ratio).to(u.R).value, unit = u.R)
 
         if not "cmap" in kwargs:
             kwargs["cmap"] = 'plasma'
