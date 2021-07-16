@@ -190,6 +190,146 @@ class SkySurveyMixin(object):
             self.remove_column("DATA")
             self["DATA"] = new_data_column
 
+    def bettermoment(self, order = None, vmin = None, vmax = None, 
+        return_sigma = False, masked = False, ratio = False, 
+        window_length = 5, rms = "auto", return_Fnu = False, 
+        traditional = False):
+        """
+        compute moment maps using bettermoments (quadratic fitting approach; Teague & Foreman-Mackey 2018)
+
+        Parameters
+        ----------
+        order: 'number', optional, must be keyword
+            moment order to return, default = 0
+        vmin: 'number' or 'Quantuty', optional, must be keyword
+            min Velocity, default units of km/s
+        vmax: 'number' or 'Quantity', optional, must be keyword
+            max Velocity, default units of km/s
+        return_sigma: 'bool', optional, must be keyword
+            if True, will also return one-sigma gaussian error estimate
+        masked: `bool`, optional, must be keyword
+            if True, used masked velocity axis
+        ratio: `bool`, optional, must be keyword
+            if True, assumes computnig for a line ratio
+        filter_width: `int`, must be keyword
+            window_length passed to savgol_filter, must be >2
+        rms: `str, number`, optional must be keyword
+            if "auto", estimates rms from data, or uses provided value
+        return_Fnu: `bool`, optional, must be keyword
+            if True, also returns Fnu and dFnu for first moment
+        traditional: `bool`, optional, must be keyword
+            if True, uses traditional moments for first and second order
+        """
+        # Make sure package exists and import it
+        try:
+            from bettermoments import collapse_cube
+        except ImportError:
+            raise ImportError("Unable to import bettermoments; try again after installing (pip install bettermoments)")
+
+        # Setup smoothing filter
+        from scipy.signal import savgol_filter
+        window_length = int(window_length)
+        assert (window_length > 2) & (window_length%2 == 1)
+
+        if order is None:
+            order = 0 # Assume default value
+
+        def smooth_savgol(x, window_length = window_length):
+            return savgol_filter(x, window_length, 2, mode='wrap', axis=0)
+
+        if not ratio:
+            all_velax = self["VELOCITY"].data
+            all_data = self["DATA"].data
+            all_var = self["VARIANCE"].data
+
+            if vmin is None:
+                vmin = np.nanmin(all_velax)
+            if vmax is None:
+                vmax = np.nanmax(all_velax)
+
+            vel_masks = all_velax >= vmin
+            vel_masks &= all_velax <= vmax
+            
+            if order == 0:
+                if rms.__class__ == str:
+                    result = np.array([collapse_cube.collapse_zeroth(velax[mask], 
+                                                                     smooth_savgol(data[mask]), 
+                                                                     np.median(np.sqrt(var[mask]))) 
+                                       for velax, data, var, mask in zip(all_velax, all_data, all_var, vel_masks)])
+                else:
+                    result = np.array([collapse_cube.collapse_zeroth(velax[mask], 
+                                                                     smooth_savgol(data[mask]), 
+                                                                     rms) 
+                                       for velax, data, mask in zip(all_velax, all_data, vel_masks)])
+
+                return result.T * self["DATA"].unit * self["VELOCITY"].unit
+
+            if order == 1:
+                if not traditional:
+                    if rms.__class__ == str:
+                        result = np.array([collapse_cube.collapse_quadratic(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         np.median(np.sqrt(var[mask]))) 
+                                           for velax, data, var, mask in zip(all_velax, all_data, all_var, vel_masks)])
+                    else:
+                        result = np.array([collapse_cube.collapse_quadratic(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         rms) 
+                                           for velax, data, mask in zip(all_velax, all_data, vel_masks)])
+
+                    v0, dv0, Fnu, dFnu = result.T
+                    if not return_Fnu:
+                        return v0 * self["VELOCITY"].unit, dv0 * self["VELOCITY"].unit
+                    else:
+                        return v0 * self["VELOCITY"].unit, dv0 * self["VELOCITY"].unit, Fnu * self["DATA"].unit, dFnu * self["DATA"].unit
+                else:
+                    if rms.__class__ == str:
+                        result = np.array([collapse_cube.collapse_first(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         np.median(np.sqrt(var[mask]))) 
+                                           for velax, data, var, mask in zip(all_velax, all_data, all_var, vel_masks)])
+                    else:
+                        result = np.array([collapse_cube.collapse_first(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         rms) 
+                                           for velax, data, mask in zip(all_velax, all_data, vel_masks)])
+
+        
+                    return result.T * self["VELOCITY"].unit
+
+
+            if order == 2:
+                if not traditional:
+                    if rms.__class__ == str:
+                        result = np.array([collapse_cube.collapse_width(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         np.median(np.sqrt(var[mask]))) 
+                                           for velax, data, var, mask in zip(all_velax, all_data, all_var, vel_masks)])
+                    else:
+                        result = np.array([collapse_cube.collapse_width(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         rms) 
+                                           for velax, data, mask in zip(all_velax, all_data, vel_masks)])
+
+                    return result.T * self["VELOCITY"].unit
+                else:
+                    if rms.__class__ == str:
+                        result = np.array([collapse_cube.collapse_second(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         np.median(np.sqrt(var[mask]))) 
+                                           for velax, data, var, mask in zip(all_velax, all_data, all_var, vel_masks)])
+                    else:
+                        result = np.array([collapse_cube.collapse_second(velax[mask], 
+                                                                         smooth_savgol(data[mask]), 
+                                                                         rms) 
+                                           for velax, data, mask in zip(all_velax, all_data, vel_masks)])
+
+                    return result.T * self["VELOCITY"].unit
+
+
+
+
+
 
     def moment(self, order = None, vmin = None, vmax = None, 
         return_sigma = False, masked = False, ratio = False):
