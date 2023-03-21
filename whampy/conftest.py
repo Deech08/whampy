@@ -9,13 +9,4 @@ else:
 
 
 def pytest_configure(config):
-
     config.option.astropy_header = True
-
-    PYTEST_HEADER_MODULES.pop('Pandas', None)
-    PYTEST_HEADER_MODULES['scikit-image'] = 'skimage'
-
-    from .version import version, astropy_helpers_version
-    packagename = os.path.basename(os.path.dirname(__file__))
-    TESTED_VERSIONS[packagename] = version
-    TESTED_VERSIONS['astropy_helpers'] = astropy_helpers_version
