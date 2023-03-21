@@ -444,6 +444,9 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
             yy_neg = yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask]
             xx_neg = xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask]
             if ((len(yy_pos) < 5) | (len(yy_neg) < 5)):
+                boot_pos = bootstrap(np.arange(len(yy_pos)), func = slope_int_estimator_pos, n_boot = n_boot)
+                boot_neg = bootstrap(np.arange(len(yy_neg)), func = slope_int_estimator_neg, n_boot = n_boot)
+                
                 slopes_pos.append(np.mean(boot_pos[:,1], axis = 0))
                 slopes_neg.append(np.mean(boot_neg[:,1], axis = 0))
                 slopes_pos_err.append(np.std(boot_pos[:,1], axis = 0))
