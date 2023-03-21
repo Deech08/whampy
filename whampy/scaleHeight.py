@@ -444,18 +444,21 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
             yy_neg = yy[(xx < -y_min) & (xx > -y_max) & ~nan_mask]
             xx_neg = xx[(xx < -y_min) & (xx > -y_max) & ~nan_mask]
             if ((len(yy_pos) < 5) | (len(yy_neg) < 5)):
-                boot_pos = bootstrap(np.arange(len(yy_pos)), func = slope_int_estimator_pos, n_boot = n_boot)
-                boot_neg = bootstrap(np.arange(len(yy_neg)), func = slope_int_estimator_neg, n_boot = n_boot)
                 
-                slopes_pos.append(np.mean(boot_pos[:,1], axis = 0))
-                slopes_neg.append(np.mean(boot_neg[:,1], axis = 0))
-                slopes_pos_err.append(np.std(boot_pos[:,1], axis = 0))
-                slopes_neg_err.append(np.std(boot_neg[:,1], axis = 0))
+                XX_pos = sm.add_constant(xx_pos)
+                res_pos = sm.RLM(yy_pos, XX_pos, M=sm.robust.norms.HuberT()).fit()
+                XX_neg = sm.add_constant(xx_neg)
+                res_neg = sm.RLM(yy_neg, XX_neg, M=sm.robust.norms.HuberT()).fit()
                 
-                intercept_pos.append(np.mean(boot_pos[:,0], axis = 0))
-                intercept_neg.append(np.mean(boot_neg[:,0], axis = 0))
-                intercept_pos_err.append(np.std(boot_pos[:,0], axis = 0))
-                intercept_neg_err.append(np.std(boot_neg[:,0], axis = 0))
+                slopes_pos.append(res_pos.params[1])
+                slopes_neg.append(res_neg.params[1])
+                slopes_pos_err.append(res_pos.bse[1])
+                slopes_neg_err.append(res_neg.bse[1])
+                
+                intercept_pos.append(res_pos.params[0])
+                intercept_neg.append(res_neg.params[0])
+                intercept_pos_err.append(res_pos.bse[0])
+                intercept_neg_err.append(res_neg.bse[0])
             else:
                 if deredden:
                     zz_dr_pos = zz[(xx > y_min) & (xx < y_max) & ~nan_mask_z]
