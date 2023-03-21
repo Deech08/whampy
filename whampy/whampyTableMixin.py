@@ -401,7 +401,7 @@ class SkySurveyMixin(object):
                 err_num = np.trapz(np.sqrt(var_masked) * vel_masked, x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2
                 err_denom = err_0
 
-                error_1 = np.sqrt((err_num/(moment_1*moment_0))**2 + (err_denom/moment_0)**2)*np.abs(moment_1)
+                err_1 = np.sqrt((err_num/(moment_1*moment_0))**2 + (err_denom/moment_0)**2)*np.abs(moment_1)
                 # err_1_subover_mom_1 = np.trapz(np.sqrt(var_masked) * vel_masked**2, x = vel_masked, 
                 #                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
                 # err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
