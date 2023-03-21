@@ -435,7 +435,7 @@ def read_unreduced_data(file_list, extension = None):
     if np.sum(extension_exists_mask) == 0:
         raise ValueError("No files in file_list have the extension: {}!".format(extension))
 
-    if extension is "AVG":
+    if extension == "AVG":
         primary_keys = ['SIMPLE',
                          'BITPIX',
                          'NAXIS',
