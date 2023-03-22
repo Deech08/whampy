@@ -382,7 +382,7 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
                 ax2.plot(np.degrees(np.arctan(xlim)), 
                          np.log([0.1,0.1]), ls = ":", lw = 1, 
                         color = "k", label = "0.1 R")
-                ax2.fill_between([-min_lat, min_lat]*u.deg, [ylim[0], ylim[0]], [ylim[1], ylim[1]],
+                ax2.fill_between([-min_lat.value, min_lat.value], [ylim[0], ylim[0]], [ylim[1], ylim[1]],
                                 color = pal[1], 
                                 alpha = 0.1, 
                                 label = r"$|b| < 5\degree$")
@@ -576,7 +576,7 @@ def fit_scale_heights(data, masks, min_lat = None, max_lat = None,
                     ax2.plot(np.degrees(np.arctan(xlim)), 
                              np.log([0.1,0.1]), ls = ":", lw = 1, 
                             color = "k", label = "0.1 R")
-                    ax2.fill_between([-min_lat, min_lat]*u.deg, [ylim[0], ylim[0]], [ylim[1], ylim[1]],
+                    ax2.fill_between([-min_lat.value, min_lat.value], [ylim[0], ylim[0]], [ylim[1], ylim[1]],
                                     color = pal[1], 
                                     alpha = 0.1, 
                                     label = r"$|b| < 5\degree$")

@@ -228,7 +228,7 @@ class SkySurvey(SkySurveyMixin, Table):
                 if mode == 'local':
                     filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
                 elif mode == 'remote':
-                    filename = "http://www.astro.wisc.edu/wham/ss/wham-ss-DR1-v161116-170912.fits"
+                    filename = "https://uwmadison.box.com/shared/static/4kccrw2bgad7muss3z2po7rezklenxxz.fits"
 
             if filename[-4:] == ".sav":
                 # IDL Save File

@@ -410,7 +410,7 @@ class SkySurveyMixin(object):
                         x = vel_masked, 
                         axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / moment_0
 
-                    err_2_subover_mom2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked / 
+                    err_2_subover_mom2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked.value / 
                                     data_masked**2 + 2*(err_1[:,None] / moment_1[:,None])**2), 
                         x = vel_masked, 
                         axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / (moment_2 * moment_0)

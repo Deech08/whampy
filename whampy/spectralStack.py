@@ -94,9 +94,9 @@ def stack_spectra_bootstrap(survey,
     stacked[0]["VELOCITY"] = velocity
     stacked[0]["DATA"] = estimator(stack_samples_data, 
                                 axis = 0) * survey["DATA"].unit
-    stacked[0]["VARIANCE"] = np.var(stack_samples_data, 
+    stacked[0]["VARIANCE"] = np.ma.var(stack_samples_data.data, 
                                  axis = 0) * survey["VARIANCE"].unit
-    stacked[0]["CI"] = np.nanpercentile(stack_samples_data, 
+    stacked[0]["CI"] = np.nanpercentile(stack_samples_data.data, 
                                   (100-ci, ci), 
                                   axis = 0) * survey["DATA"].unit
 

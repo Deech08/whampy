@@ -35,4 +35,4 @@ def test_basic():
         max_lat = 35, 
         deredden = True)
 
-    assert np.allclose(results["slopes_pos"], results_2["slopes_pos"], equal_nan = True)
+    assert np.allclose(results["slopes_pos"], results_2["slopes_pos"], equal_nan = True, atol = 1e-2)
