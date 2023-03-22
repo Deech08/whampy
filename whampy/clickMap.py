@@ -17,6 +17,13 @@ except ModuleNotFoundError:
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import Angle
 
+try:
+    from regions import Regions
+except ModuleNotFoundError:
+    #Error handling
+    pass
+
+
 
 
 
@@ -150,9 +157,10 @@ class SpectrumPlotter():
                             self.over_line.set_data(self.over_data.spectral_axis.to(u.km/u.s).value, 
                                                     self.over_data.unmasked_data[:,lat_slice,lon_slice].value)
                         else:
-                            ds9_str = 'galactic; circle({0:.3}, {1:.4}, {2:.4}")'.format(click_coord.l.wrap_at("180d").value, 
+                            regions_str = 'galactic; circle({0:.3}, {1:.4}, {2:.4}")'.format(click_coord.l.wrap_at("180d").value, 
                                                                          click_coord.b.value, 
                                                                          self.radius.to(u.arcsec).value)
+                            regions = Regions.parse(regions_str, format='ds9')
                             _, lat_axis_values, _ = self.over_data.world[int(self.over_data.shape[0]/2), :, int(self.over_data.shape[2]/2)]
                             lat_slice_up = np.nanargmin(np.abs(lat_axis_values-click_coord.b+self.radius*1.5))
                             lat_slice_down = np.nanargmin(np.abs(lat_axis_values-click_coord.b-self.radius*1.5))
@@ -168,7 +176,7 @@ class SpectrumPlotter():
 
 
                             smaller_cube = self.over_data[:,lat_slices[0]:lat_slices[1], lon_slices[0]:lon_slices[1]]
-                            subcube = smaller_cube.subcube_from_ds9region(ds9_str)
+                            subcube = smaller_cube.subcube_from_regions(regions)
                             spectrum = subcube.mean(axis = (1,2))
                             self.over_line.set_data(spectrum.spectral_axis.to(u.km/u.s).value, 
                                                     spectrum.value)
