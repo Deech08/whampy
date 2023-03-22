@@ -8,7 +8,8 @@ Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Ma
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
 
-[![Tests](https://github.com/Deech08/whampy/actions/workflows/tests.yml/badge.svg)](https://github.com/Deech08/whampy/actions/workflows/tests.yml)
+.. image:: https://github.com/Deech08/whampy/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/Deech08/whampy/actions/workflows/tests.yml
 
 .. image:: https://coveralls.io/repos/github/Deech08/whampy/badge.svg?branch=master&service=github
 	:target: https://coveralls.io/github/Deech08/whampy?branch=master&service=github
