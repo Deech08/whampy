@@ -17,5 +17,15 @@ This is especially useful for members of the WHAM team to work with preliminary 
 	>>> survey_idl = SkySurvey(filename = filename)
 
 
+You can also load the H-Alpha surveys of the Magellanic Clouds from 'Smart et al. (2019)'_. 
+.. _Smart et al. (2019): https://ui.adsabs.harvard.edu/abs/2019ApJ...887...16S/abstract>`::
+and Smart et al. (2023).
+This can be done by specifying the survey as a keyword when calling :class:`~whampy.skySurvey.SkySurvey`::
+
+	>>> from whampy.skySurvey import SkySurvey
+	>>> # Load SMC Survey
+	>>> smc = SkySurvey(survey = "smc_ha")
+	>>> # Load LMC Survey
+	>>> lmc = SkySurvey(survey = "lmc_ha")
 
 

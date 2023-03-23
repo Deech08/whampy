@@ -47,6 +47,13 @@ class SkySurvey(SkySurveyMixin, Table):
         if provided, reads unreduced data (RAW/PROC SPEC) 
     input_data_R: `bool`, optional, must be keyword
         if True, assumed input data unit is Rayleighs
+    survey: 'str', optional, must be keyword
+        specifies which WHAM survey data to load
+        options are 
+            "mw_ha":Milky Way Sky Survey of H-Alpha
+            "mw_sii":Milky Way [SII] Survey (preliminary)
+            "lmc_ha":Large Magellanic Cloud H-Alpha Survey (Smart et al. 2023)
+            "smc_ha":Small Magellanic Cloud H-Alpha Survey (Smart et al. 2019)
 
 
     """
@@ -55,7 +62,7 @@ class SkySurvey(SkySurveyMixin, Table):
     def __init__(self, filename = None, mode = 'local', idl_var = None, 
                  file_list = None, extension = None, max_raw_vel = False,
                  from_table = None, tuner_list = None, unreduced_list = None, 
-                 input_data_R = False,
+                 input_data_R = False, survey = "mw_ha",
                  **kwargs):
 
 
@@ -226,8 +233,17 @@ class SkySurvey(SkySurveyMixin, Table):
 
             if filename is None:
                 if mode == 'local':
-                    filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
+                    if survey in ["mw", "ha", "sky_survey", "ss", "mw_ha"]:
+                        filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
+                    elif survey in ["sii", "mw_sii"]:
+                        filename = os.path.join(directory, "data/sii")
+                    elif survey in ["lmc", "lmc_ha"]:
+                        filename = os.path.join(directory, "data/lmc_combined_map.sav")
+                    elif survey in ["smc", "smc_ha"]:
+                        filename = os.path.join(directory, "data/smc_ha_corrected.sav")
                 elif mode == 'remote':
+                    # if survey in ["mw", "ha", "sky_survey", "ss", "mw_ha"]:
+                    # Currently only supports remote loading of ha data. 
                     filename = "https://uwmadison.box.com/shared/static/4kccrw2bgad7muss3z2po7rezklenxxz.fits"
 
             if filename[-4:] == ".sav":
@@ -253,6 +269,9 @@ class SkySurvey(SkySurveyMixin, Table):
                 data_dict["VELOCITY"] = np.vstack(survey_data["VEL"][:][:]) * u.km/u.s
                 data_dict["DATA"] = np.vstack(survey_data["DATA"][:][:]) * u.R * u.s / u.km
                 data_dict["VARIANCE"] = np.vstack(survey_data["VAR"][:][:]) * (u.R * u.s / u.km)**2
+                if not input_data_R:
+                    data_dict["DATA"]/=22.8
+                    data_dict["VARIANCE"]/=22.8**2
 
                 # Extra info from IDL Save Files Dependent on type of File / origin
                 if "INTEN" in survey_data.dtype.names:
