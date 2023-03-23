@@ -18,6 +18,30 @@ def test_remote_load():
     survey = SkySurvey(mode = "remote")
     assert survey["VELOCITY"].unit == u.km/u.s
 
+def test_load_smc():
+    """
+    Ensure smc survey loads
+    """
+
+    smc = SkySurvey(survey = "smc_ha")
+    assert smc["VELOCITY"].unit == u.km/u.s
+
+def test_load_lmc():
+    """
+    Ensure smc survey loads
+    """
+
+    smc = SkySurvey(survey = "lmc_ha")
+    assert smc["VELOCITY"].unit == u.km/u.s
+
+def test_load_sii():
+    """
+    Ensure sii Milky Way survey loads
+    """
+
+    sii = SkySurvey(survey = "mw_sii")
+    assert sii["VELOCITY"].unit == u.km/u.s
+
 survey = SkySurvey()
 
 def test_idlsav_load():

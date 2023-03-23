@@ -236,7 +236,7 @@ class SkySurvey(SkySurveyMixin, Table):
                     if survey in ["mw", "ha", "sky_survey", "ss", "mw_ha"]:
                         filename = os.path.join(directory, "data/wham-ss-DR1-v161116-170912.fits")
                     elif survey in ["sii", "mw_sii"]:
-                        filename = os.path.join(directory, "data/sii")
+                        filename = os.path.join(directory, "data/sii.sav")
                     elif survey in ["lmc", "lmc_ha"]:
                         filename = os.path.join(directory, "data/lmc_combined_map.sav")
                     elif survey in ["smc", "smc_ha"]:
