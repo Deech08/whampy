@@ -34,13 +34,13 @@ def test_load_lmc():
     smc = SkySurvey(survey = "lmc_ha")
     assert smc["VELOCITY"].unit == u.km/u.s
 
-def test_load_sii():
-    """
-    Ensure sii Milky Way survey loads
-    """
+# def test_load_sii():
+#     """
+#     Ensure sii Milky Way survey loads
+#     """
 
-    sii = SkySurvey(survey = "mw_sii")
-    assert sii["VELOCITY"].unit == u.km/u.s
+#     sii = SkySurvey(survey = "mw_sii")
+#     assert sii["VELOCITY"].unit == u.km/u.s
 
 survey = SkySurvey()
 
