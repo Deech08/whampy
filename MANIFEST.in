@@ -5,6 +5,8 @@ include ah_bootstrap.py
 include setup.cfg
 include whampy/data/Reid16_SpiralArms/*
 include whampy/data/wham-ss-DR1-v161116-170912.fits
+include whampy/data/smc_ha_corrected.sav
+include whampy/data/lmc_combined_map.sav
 
 exclude whampy/data/wham-ss-161116.sav
 exclude whampy/data/sii_161221.sav
