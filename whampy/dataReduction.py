@@ -174,6 +174,9 @@ def compute_transmissions(directory, lines = None, calibrator = None, plot = Fal
             calib_key = np.hstack([[calib for row in data_dict[line][calib]] 
                          for calib in data_dict[line].keys()])
             masks = [[calib == c for c in calib_key] for calib in data_dict[line].keys()]
+            if np.all([len(m) == 1 for m in masks]):
+                # can't make fit
+                raise ValueError("Not enough calibrators observed this night to fit!")
             # Create linear model
             if n_calib == 1:
                 exec("""def linear_model(airmass, 
