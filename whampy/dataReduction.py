@@ -11,6 +11,8 @@ from astropy.io import fits
 import glob
 import os.path
 
+from astropy.table import Table
+
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
 from unittest import mock
