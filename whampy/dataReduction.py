@@ -187,7 +187,7 @@ def compute_transmissions(directory, lines = None, calibrator = None, plot = Fal
                     return np.array(airmass[masks[0]] * slope + y_int_{0})
                 """.format(calibs[0]), globals())
             elif n_calib ==2:
-                exec("""def linear_model(airmass
+                exec("""def linear_model(airmass,
                                 slope, 
                                 y_int_{0}, y_int_{1}, masks = None):
                     return np.array([airmass[masks[0]] * slope + y_int_{0}, 
@@ -209,7 +209,7 @@ def compute_transmissions(directory, lines = None, calibrator = None, plot = Fal
                                      airmass[masks[3]] * slope + y_int_{3}])
                 """.format(calibs[0], calibs[1], calibs[2], calibs[3]), globals())
             elif n_calib ==5:
-                exec("""def linear_model(airmass
+                exec("""def linear_model(airmass,
                                 slope, 
                                 y_int_{0}, y_int_{1}, y_int_{2}, y_int_{3}, y_int_{4}, masks = None):
                     return np.array([airmass[0] * slope + y_int_{0}, 
