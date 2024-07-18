@@ -128,7 +128,7 @@ def read_calibration_data(directory, lines = None, calibrator = None, extension 
     return data_dict
 
 def compute_transmissions(directory, lines = None, calibrator = None, plot = False, alpha = None, 
-    extension = None, file_suffix = None):
+    extension = None, file_suffix = None, simultaneous = True):
     """
     Computes transmission curves (slopes) for a given directory
     
@@ -152,6 +152,8 @@ def compute_transmissions(directory, lines = None, calibrator = None, plot = Fal
         extension to load
     file_suffix: `str`, optional, must be keyword
         Include a suffix to the file search criteria
+    simultaneous: `bool`, optional, must be keyword
+        if True, uses all calibrators and fits a single slope with different y-ints
     """
     # Default confidence degree
     if alpha is None:
@@ -160,70 +162,158 @@ def compute_transmissions(directory, lines = None, calibrator = None, plot = Fal
     # Read data
     data_dict = read_calibration_data(directory, lines = lines, calibrator = calibrator, 
         file_suffix = file_suffix, extension = extension)
-    
-    
-    # Compute Slopees
     transmissions = {}
-    for line in data_dict.keys():
-        transmissions[line] = {}
-        for calibrator_name in data_dict[line].keys():
-            # Check that multiple data points exist
-            if len(data_dict[line][calibrator_name]) > 2:
-                transmissions[line][calibrator_name] = {}
-                fit_result = stats.theilslopes(np.log(data_dict[line][calibrator_name]["INTEN"]), 
-                                               data_dict[line][calibrator_name]["AIRMASS"], 
-                                               alpha = alpha)
-
-                transmissions[line][calibrator_name]["SLOPE_THEIL"] = fit_result[0]
-                transmissions[line][calibrator_name]["INTERCEPT_THEIL"] = fit_result[1]
-                transmissions[line][calibrator_name]["LO_SLOPE_THEIL"] = fit_result[2]
-                transmissions[line][calibrator_name]["UP_SLOPE_THEIL"] = fit_result[3]
+    
+    if simultaneous:
+        for line in data_dict.keys():
+            
+            # determine number of calibrators present
+            n_calib = len(data_dict[line].keys())
+            calibs = list(data_dict[line].keys())
+            # check on array lengths for each calibrator:
+            calib_key = np.hstack([[calib for row in data_dict[line][calib]] 
+                         for calib in data_dict[line].keys()])
+            masks = [[calib == c for c in calib_key] for calib in data_dict[line].keys()]
+            # Create linear model
+            if n_calib == 1:
+                exec("""def linear_model(airmass, 
+                                slope, 
+                                y_int_{0}, masks = None):
+                    return np.array(airmass[masks[0]] * slope + y_int_{0})
+                """.format(calibs[0]), globals())
+            elif n_calib ==2:
+                exec("""def linear_model(airmass
+                                slope, 
+                                y_int_{0}, y_int_{1}, masks = None):
+                    return np.array([airmass[masks[0]] * slope + y_int_{0}, 
+                                     airmass[masks[1]] * slope + y_int_{1}])
+                """.format(calibs[0], calibs[1]), globals())
+            elif n_calib ==3:
+                exec("""def linear_model(airmass, slope, y_int_{0}, y_int_{1}, y_int_{2}, masks = None):
+                    return np.hstack([airmass[masks[0]] * slope + y_int_{0}, 
+                                     airmass[masks[1]] * slope + y_int_{1}, 
+                                     airmass[masks[2]] * slope + y_int_{2}])
+                """.format(calibs[0], calibs[1], calibs[2]), globals())
+            elif n_calib ==4:
+                exec("""def linear_model(airmass, 
+                                slope, 
+                                y_int_{0}, y_int_{1}, y_int_{2}, y_int_{3}, masks = None):
+                    return np.array([airmass[masks[0]] * slope + y_int_{0}, 
+                                     airmass[masks[1]] * slope + y_int_{1}, 
+                                     airmass[masks[2]] * slope + y_int_{2}, 
+                                     airmass[masks[3]] * slope + y_int_{3}])
+                """.format(calibs[0], calibs[1], calibs[2], calibs[3]), globals())
+            elif n_calib ==5:
+                exec("""def linear_model(airmass
+                                slope, 
+                                y_int_{0}, y_int_{1}, y_int_{2}, y_int_{3}, y_int_{4}, masks = None):
+                    return np.array([airmass[0] * slope + y_int_{0}, 
+                                     airmass[1] * slope + y_int_{1}, 
+                                     airmass[2] * slope + y_int_{2}, 
+                                     airmass[3] * slope + y_int_{3}, 
+                                     airmass[4] * slope + y_int_{4}])
+                """.format(calibs[0], calibs[1], calibs[2], calibs[3], calibs[4]), globals())
                 
-                if hasattr(stats, "siegelslopes"):
-                    siegel_result = stats.siegelslopes(np.log(data_dict[line][calibrator_name]["INTEN"]), 
-                                                   data_dict[line][calibrator_name]["AIRMASS"])
-                else:
-                    logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
-                    siegel_result = np.array([np.nan, np.nan])
 
                 
-                transmissions[line][calibrator_name]["SLOPE_SIEGEL"] = siegel_result[0]
-                transmissions[line][calibrator_name]["INTERCEPT_SIEGEL"] = siegel_result[1]
+            linModel = Model(linear_model)
+            
+            params = linModel.make_params(slope = -0.15)
+            for param in params.keys():
+                if "g300" in param:
+                    params[param].value = 6.6
+                elif "g194" in param:
+                    params[param].value = 5.1
+                elif "spica" in param:
+                    params[param].value = 4.25
+                elif "lori" in param:
+                    params[param].value = 7.5
+                elif "zeta" in param:
+                    params[param].value = 8.1
+                    
 
-                if plot:
-                    fig = plt.figure()
-                    ax = fig.add_subplot(111)
-                    from astropy.time import Time
-                    dates = np.round(Time(data_dict[line][calibrator_name]["DATE-OBS"]).jd)
-                    ax.scatter(data_dict[line][calibrator_name]["AIRMASS"], 
-                               np.log(data_dict[line][calibrator_name]["INTEN"]), 
-                               c = dates, label = "Observations")
-                    xlim = ax.get_xlim()
-                    ylim = ax.get_ylim()
-                    slope_line_x = np.linspace(xlim[0], xlim[1], 10)
-                    slope_line_y = fit_result[1] + fit_result[0] * slope_line_x
-                    slope_line_y_siegel = siegel_result[1] + siegel_result[0] * slope_line_x
-                    ax.plot(slope_line_x, 
-                            slope_line_y, 
-                            lw = 2, 
-                            color = 'r', 
-                            ls = "-", 
-                            label = "Theil Slope = {:.3f}".format(fit_result[0]))
-                    ax.plot(slope_line_x, 
-                            slope_line_y_siegel, 
-                            lw = 2, 
-                            color = 'b', 
-                            ls = "--", 
-                            label = "Siegel Slope = {0:.3f}".format(siegel_result[0]))
                     
+            am = np.hstack([data_dict[line][name]["AIRMASS"].data for name in data_dict[line].keys()])
+            y = np.hstack([np.log(data_dict[line][name]["INTEN"].data) for name in data_dict[line].keys()])
+            fit = linModel.fit(y, airmass = am, params = params, masks = masks)
+#             print(fit.fit_report())
+            transmissions[line] = Table({
+                "FOLDER":[directory.split("/")[-2]] if directory.split("/")[-1] == "" else [directory.split("/")[-1]],
+                })
+            for param in fit.params:
+                transmissions[line][param] = fit.params[param].value
+                transmissions[line]["{0}_err".format(param)] = fit.params[param].stderr
+                
+            transmissions[line]["red_chi"] = fit.redchi
+            transmissions[line]["R-squared"] = fit.rsquared
+                
+            
+        return transmissions
                     
-                    ax.set_xlabel("Airmass", fontsize = 12)
-                    ax.set_ylabel(r"$/ln$(Intensity/R)", fontsize =12)
-                    ax.set_xlim(xlim)
-                    ax.set_ylim(ylim)
+
         
-                    ax.legend(fontsize = 12)
-                    ax.set_title("{} {}".format(line, calibrator_name), fontsize = 12)
+    else:
+        # Compute Slopes
+        for line in data_dict.keys():
+            transmissions[line] = {}
+            for calibrator_name in data_dict[line].keys():
+                # Check that multiple data points exist
+                if len(data_dict[line][calibrator_name]) > 2:
+                    transmissions[line][calibrator_name] = {}
+                    fit_result = stats.theilslopes(np.log(data_dict[line][calibrator_name]["INTEN"]), 
+                                                   data_dict[line][calibrator_name]["AIRMASS"], 
+                                                   alpha = alpha)
+
+                    transmissions[line][calibrator_name]["SLOPE_THEIL"] = fit_result[0]
+                    transmissions[line][calibrator_name]["INTERCEPT_THEIL"] = fit_result[1]
+                    transmissions[line][calibrator_name]["LO_SLOPE_THEIL"] = fit_result[2]
+                    transmissions[line][calibrator_name]["UP_SLOPE_THEIL"] = fit_result[3]
+
+                    if hasattr(stats, "siegelslopes"):
+                        siegel_result = stats.siegelslopes(np.log(data_dict[line][calibrator_name]["INTEN"]), 
+                                                       data_dict[line][calibrator_name]["AIRMASS"])
+                    else:
+                        logging.warning("Installed version of scipy does not have the siegelslopes method in scipy.stats!")
+                        siegel_result = np.array([np.nan, np.nan])
+
+
+                    transmissions[line][calibrator_name]["SLOPE_SIEGEL"] = siegel_result[0]
+                    transmissions[line][calibrator_name]["INTERCEPT_SIEGEL"] = siegel_result[1]
+
+                    if plot:
+                        fig = plt.figure()
+                        ax = fig.add_subplot(111)
+                        from astropy.time import Time
+                        dates = np.round(Time(data_dict[line][calibrator_name]["DATE-OBS"]).jd)
+                        ax.scatter(data_dict[line][calibrator_name]["AIRMASS"], 
+                                   np.log(data_dict[line][calibrator_name]["INTEN"]), 
+                                   c = dates, label = "Observations")
+                        xlim = ax.get_xlim()
+                        ylim = ax.get_ylim()
+                        slope_line_x = np.linspace(xlim[0], xlim[1], 10)
+                        slope_line_y = fit_result[1] + fit_result[0] * slope_line_x
+                        slope_line_y_siegel = siegel_result[1] + siegel_result[0] * slope_line_x
+                        ax.plot(slope_line_x, 
+                                slope_line_y, 
+                                lw = 2, 
+                                color = 'r', 
+                                ls = "-", 
+                                label = "Theil Slope = {:.3f}".format(fit_result[0]))
+                        ax.plot(slope_line_x, 
+                                slope_line_y_siegel, 
+                                lw = 2, 
+                                color = 'b', 
+                                ls = "--", 
+                                label = "Siegel Slope = {0:.3f}".format(siegel_result[0]))
+
+
+                        ax.set_xlabel("Airmass", fontsize = 12)
+                        ax.set_ylabel(r"$/ln$(Intensity/R)", fontsize =12)
+                        ax.set_xlim(xlim)
+                        ax.set_ylim(ylim)
+
+                        ax.legend(fontsize = 12)
+                        ax.set_title("{} {}".format(line, calibrator_name), fontsize = 12)
             
     return transmissions
 
@@ -329,7 +419,7 @@ def raw_to_geo(row):
     
     delta_P = row["PAMON"]/10. - row["PBMON"]/10.
     
-    if row["FSHNAME"] == "ha":
+    if row["FSHNAME"] in ["ha", "ha_omega"]:
         closest_order_arg = np.abs(ha_order_dict["delta_P"] - delta_P).argmin()
         #Check Distance
         close_enough = np.abs(delta_P - ha_order_dict["delta_P"][closest_order_arg]) < 10.
