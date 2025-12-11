@@ -1,0 +1,32 @@
+{
+  "template": "https://github.com/OpenAstronomy/packaging-guide",
+  "commit": "d4aa2e8806bf57505dc65793009bd9ecb2777364",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "package_name": "whampy",
+      "module_name": "whampy",
+      "short_description": "Python Package to Interact with, Visualize, and Analyze the Wisconsin H-Alpha Mapper - Sky Survey",
+      "author_name": " DK (Dhanesh Krishnarao)",
+      "author_email": "dkrishnarao@coloradocollege.edu",
+      "project_url": "https://github.com/Deech08/whampy",
+      "license": "BSD 3-Clause",
+      "minimum_python_version": "3.9",
+      "use_compiled_extensions": "n",
+      "enable_dynamic_dev_versions": "n",
+      "include_example_code": "n",
+      "include_cruft_update_github_workflow": "n",
+      "_sphinx_theme": "alabaster",
+      "_parent_project": "",
+      "_install_requires": "astropy, numpy, matplotlib, scipy, seaborn",
+      "_copy_without_render": [
+        "docs/_templates",
+        "docs/_static",
+        ".github/workflows/sub_package_update.yml"
+      ],
+      "_template": "https://github.com/OpenAstronomy/packaging-guide",
+      "_commit": "d4aa2e8806bf57505dc65793009bd9ecb2777364"
+    }
+  },
+  "directory": null
+}
