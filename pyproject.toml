@@ -23,6 +23,7 @@ test = [
 docs = [
     "sphinx",
     "sphinx-automodapi",
+    "sphinx-astropy",
 ]
 
 [tool.setuptools]
