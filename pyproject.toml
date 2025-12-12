@@ -23,7 +23,7 @@ test = [
 docs = [
     "sphinx",
     "sphinx-automodapi",
-    "sphinx-astropy",
+    "numpydoc",
 ]
 
 [tool.setuptools]
