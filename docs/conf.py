@@ -14,7 +14,7 @@ release = 'v1.0.5'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx_automodapi.automodapi','numpydoc','matplotlib.sphinxext.plot_directive']
+extensions = ['sphinx_automodapi.automodapi','numpydoc']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
