@@ -16,7 +16,7 @@ sky section maps with the survey using tracks in longitude-velocity space.
     >>> perseus_arm = survey.get_spiral_slice(track = "perseus", lrange = [0,50])
     >>> # Sky Map
 
-	>>> fig = perseus_arm.intensity_map(colorbar = True, s_factor = 2,
+	 >>> fig = perseus_arm.intensity_map(colorbar = True, s_factor = 2,
     ...              			   cbar_kwargs={"orientation":"horizontal"})
 
 .. image:: images/perseus_arm_map.png
