@@ -391,14 +391,14 @@ class SkySurveyMixin(object):
 
             # Caution - Errors not to be trusted...
             # Zeroth Order Moment
-            moment_0 = np.trapz(data_masked, x = vel_masked, 
+            moment_0 = np.trapezoid(data_masked, x = vel_masked, 
                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
-            err_0 = np.trapz(np.sqrt(var_masked), x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
+            err_0 = np.trapezoid(np.sqrt(var_masked), x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit
 
             if order > 0:
-                moment_1 = np.trapz(data_masked * vel_masked, x = vel_masked, 
+                moment_1 = np.trapezoid(data_masked * vel_masked, x = vel_masked, 
                     axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / moment_0
-                err_num = np.trapz(np.sqrt(var_masked) * vel_masked, x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2
+                err_num = np.trapezoid(np.sqrt(var_masked) * vel_masked, x = vel_masked, axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2
                 err_denom = err_0
 
                 err_1 = np.sqrt((err_num/(moment_1*moment_0))**2 + (err_denom/moment_0)**2)*np.abs(moment_1)
@@ -406,11 +406,11 @@ class SkySurveyMixin(object):
                 #                 axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**2 / (moment_1 * moment_0)
                 # err_1 = moment_1 * np.sqrt(err_1_subover_mom_1**2 + (err_0 / moment_0)**2)
                 if order > 1:
-                    moment_2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2, 
+                    moment_2 = np.trapezoid(data_masked * (vel_masked - moment_1.value[:,None])**2, 
                         x = vel_masked, 
                         axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / moment_0
 
-                    err_2_subover_mom2 = np.trapz(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked.value / 
+                    err_2_subover_mom2 = np.trapezoid(data_masked * (vel_masked - moment_1.value[:,None])**2 * np.sqrt(var_masked.value / 
                                     data_masked**2 + 2*(err_1[:,None] / moment_1[:,None])**2), 
                         x = vel_masked, 
                         axis = 1) * self["DATA"].unit * self["VELOCITY"].unit**3 / (moment_2 * moment_0)
@@ -469,13 +469,13 @@ class SkySurveyMixin(object):
 
             # Caution - Errors not to be trusted...
             # Zeroth Order Moment
-            moment_0_num = np.trapz(data_masked_num, x = vel_masked, 
+            moment_0_num = np.trapezoid(data_masked_num, x = vel_masked, 
                 axis = 1) * self["DATA_NUM"].unit * self["VELOCITY"].unit
-            err_0_num = np.trapz(np.sqrt(var_masked_num), x = vel_masked, axis = 1) * self["DATA_NUM"].unit * self["VELOCITY"].unit
+            err_0_num = np.trapezoid(np.sqrt(var_masked_num), x = vel_masked, axis = 1) * self["DATA_NUM"].unit * self["VELOCITY"].unit
 
-            moment_0_denom = np.trapz(data_masked_denom, x = vel_masked, 
+            moment_0_denom = np.trapezoid(data_masked_denom, x = vel_masked, 
                 axis = 1) * self["DATA_DENOM"].unit * self["VELOCITY"].unit
-            err_0_denom = np.trapz(np.sqrt(var_masked_num), x = vel_masked, axis = 1) * self["DATA_DENOM"].unit * self["VELOCITY"].unit
+            err_0_denom = np.trapezoid(np.sqrt(var_masked_num), x = vel_masked, axis = 1) * self["DATA_DENOM"].unit * self["VELOCITY"].unit
 
 
             moment_0 = moment_0_num / moment_0_denom
